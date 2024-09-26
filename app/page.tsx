@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Menu, X, Home, FileText, MessageSquare, Calculator, Settings, LogOut, Search, ArrowRight, DollarSign, TrendingUp, AlertCircle, CheckCircle, Cpu } from 'lucide-react'
+import { Menu, Home, FileText, MessageSquare, Calculator, Settings, LogOut, ArrowRight, DollarSign, TrendingUp, AlertCircle, CheckCircle, Cpu } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -25,7 +25,7 @@ interface MicroserviceCardProps {
 
 interface InvoiceItemProps {
   category: string;
-  amount: number;
+  amount: string;
   date: string;
 }
 
