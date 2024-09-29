@@ -22,7 +22,12 @@ import {
   Search,
   ArrowLeft,
   CalendarIcon,
-  IndianRupee
+  IndianRupee,
+  Weight,
+  ShoppingCart,
+  Upload,
+  Download,
+  Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,6 +61,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { Checkbox } from "@/components/ui/checkbox"
+
 
 type Transaction = {
   id: string;
@@ -63,13 +70,16 @@ type Transaction = {
   date: string;
   partyName: string;
   amount: number;
+  totalAmountWithoutGST:number,
   gst: {
     cgst: number;
     sgst: number;
-    igst: number;
+    cgstPercentage: number;
+    sgstPercentage: number;
   };
   description: string;
-  quantity: string
+  quantity: string;
+  totalAmount: number;
 };
 
 interface MicroserviceIconProps {
@@ -77,16 +87,26 @@ interface MicroserviceIconProps {
   title: string;
 }
 
-interface TransactionProps {
+interface TransactionProps extends Omit<Transaction, 'id' | 'type'> {
+  id: string;
   type: "sales" | "purchase";
   date: string;
-  amount: number;
+  totalAmount: number;
+}
+
+interface InvoiceCreatedItemProps {
+  transaction: TransactionProps;
+  onView: (transaction: TransactionProps) => void;
+  onSelect: (id: string) => void;
+  isSelected: boolean;
 }
 
 interface InvoiceItemProps {
   transaction: TransactionProps;
   onView: (transaction: TransactionProps) => void;
 }
+
+
 
 interface SidebarItemProps {
   title: string;
@@ -101,6 +121,12 @@ type BillingScreenProps = {
     data: Omit<Transaction, "id" | "type">
   ) => void;
 };
+
+interface TransactionListProps {
+  transactions: TransactionProps[];
+  type: string;
+  onViewInvoice: (transaction: TransactionProps) => void;
+}
 
 const MicroserviceIcon = ({ icon: Icon, title }: MicroserviceIconProps) => (
   <div className="flex flex-col items-center justify-center p-4">
@@ -119,7 +145,7 @@ const InvoiceItem = ({ transaction, onView }: InvoiceItemProps) => (
     </div>
     <div className="flex items-center">
       <span className="text-sm font-semibold mr-2">
-        ₹{transaction.amount.toFixed(2)}
+        ₹{transaction.totalAmount.toFixed(2)}
       </span>
       <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
         <FileText className="h-4 w-4" />
@@ -127,6 +153,27 @@ const InvoiceItem = ({ transaction, onView }: InvoiceItemProps) => (
     </div>
   </div>
 );
+
+const InvoiceCreatedItem = ({ transaction, onView, onSelect, isSelected } : InvoiceCreatedItemProps) => (
+  <div className="flex justify-between items-center py-2 border-b last:border-b-0">
+    <div className="flex items-center space-x-2">
+      <Checkbox
+        checked={isSelected}
+        onCheckedChange={() => onSelect(transaction.id)}
+      />
+      <div>
+        <Badge variant={transaction.type === 'sales' ? 'default' : 'secondary'}>{transaction.type}</Badge>
+        <p className="text-xs mt-1">{transaction.date}</p>
+      </div>
+    </div>
+    <div className="flex items-center space-x-2">
+      <span className="text-sm font-semibold">₹{transaction.totalAmount.toFixed(2)}</span>
+      <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
+        <Eye className="h-4 w-4" />
+      </Button>
+    </div>
+  </div>
+)
 
 const SidebarItem = ({
   title,
@@ -179,7 +226,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
   }, []);
 
   const totalBilling = transactions.reduce(
-    (sum: number, t: any) => sum + t.amount,
+    (sum: number, t: any) => sum + t.totalAmount,
     0
   );
   const filedReturns = 12; // This should be calculated based on actual data
@@ -286,23 +333,37 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
     // Convert FormDataEntryValue to string safely
     const getStringValue = (value: FormDataEntryValue) =>
       typeof value === "string" ? value : "";
-    const CGSTAmount =  (parseFloat(getStringValue(data.amount)) % 9) / 100;
-    const SGSTAmount =  (parseFloat(getStringValue(data.amount)) % 9) / 100;
-    const totalAmount = parseFloat(getStringValue(data.amount)) + CGSTAmount + SGSTAmount
+
+    const amount = parseFloat(getStringValue(data.amount));
+    const quantity = parseFloat(getStringValue(data.quantity));
+
+    const totalAmountWithoutGST = amount * quantity;
+
+    const cgstPercentage = parseFloat(getStringValue(data.cgst)); // CGST percentage
+    const sgstPercentage = parseFloat(getStringValue(data.sgst)); 
+    // Calculate CGST and SGST as 9% of the total amount
+    const CGSTAmount = (totalAmountWithoutGST * cgstPercentage) / 100;
+    const SGSTAmount = (totalAmountWithoutGST * sgstPercentage) / 100;
+
+    // Calculate the final total amount including GST
+    const totalAmount = totalAmountWithoutGST + CGSTAmount + SGSTAmount;
     
 
     onSave(entryType, {
       ...data,
-      amount: parseFloat(getStringValue(data.amount)),
+      amount: amount,
+      totalAmountWithoutGST,
       gst: {
-        cgst: parseFloat(getStringValue(data.cgst)),
-        sgst: parseFloat(getStringValue(data.sgst)),
-        igst: parseFloat(getStringValue(data.igst)),
+        cgst: CGSTAmount,
+        sgst: SGSTAmount,
+        cgstPercentage, // Store CGST percentage
+        sgstPercentage, // Store SGST percentage
       },
       description: getStringValue(data.description),
       partyName: getStringValue(data.partyName),
       date: getStringValue(data.date),
-      quantity:getStringValue(data.quantity)
+      quantity:getStringValue(data.quantity),
+      totalAmount
     } as Transaction);
   };
 
@@ -403,19 +464,7 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
               className="text-sm"
             />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="igst" className="text-sm">
-              IGST (%)
-            </Label>
-            <Input
-              id="igst"
-              name="igst"
-              type="number"
-              step="0.01"
-              required
-              className="text-sm"
-            />
-          </div>
+          
         </div>
         <div className="space-y-2">
           <Label htmlFor="description" className="text-sm">
@@ -519,6 +568,68 @@ const SettingsScreen = () => (
   </div>
 );
 
+const TransactionList = ({ transactions, type, onViewInvoice } : TransactionListProps) => {
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([])
+
+  const handleSelect = (id: string) => {
+    setSelectedInvoices(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    )
+  }
+
+  const handleViewSelected = () => {
+    // Implement view functionality for selected invoices
+  }
+
+  const handleDownloadSelected = () => {
+    // Implement download functionality for selected invoices
+  }
+
+  const handleImport = () => {
+    // Implement import functionality
+  }
+
+  const filteredTransactions = transactions.filter((t) => t.type === type);
+
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl sm:text-2xl font-semibold">{type === 'sales' ? 'Sales' : 'Purchases'}</h2>
+        <div className="space-x-2">
+         
+          <Button onClick={handleDownloadSelected} disabled={selectedInvoices.length === 0}>
+            <Download className="w-4 h-4 mr-2" /> Download
+          </Button>
+          <Button onClick={handleImport}>
+            <Upload className="w-4 h-4 mr-2" /> Import
+          </Button>
+        </div>
+      </div>
+      <ScrollArea className="h-[400px] border rounded-md p-2">
+        {filteredTransactions.length > 0 ? (
+          filteredTransactions.map((transaction) => (
+            <InvoiceCreatedItem
+              key={transaction.id}
+              transaction={transaction}
+              onView={onViewInvoice}
+              onSelect={handleSelect}
+              isSelected={selectedInvoices.includes(transaction.id)}
+            />
+          ))
+        ) : (
+          // Message when no transactions of the selected type are found
+          <div className="text-center text-gray-500">
+            No {type === "sales" ? "sales" : "purchases"} transactions available.
+          </div>
+        )}
+      </ScrollArea>
+    </div>
+  )
+}
+
+
+
 export default function EnhancedFinancialApp() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -532,9 +643,12 @@ export default function EnhancedFinancialApp() {
   const sidebarItems = [
     { title: "Dashboard", icon: Home },
     { title: "Billing", icon: FileText },
+    { title: "Sales", icon: Weight },
+    { title: "Purchases", icon: ShoppingCart },
     { title: "AI Bot", icon: MessageSquare },
     { title: "GST Dashboard", icon: Calculator },
     { title: "Settings", icon: Settings },
+   
   ];
 
   const handleNavigation = (item: any) => {
@@ -582,6 +696,10 @@ export default function EnhancedFinancialApp() {
         return <GSTDashboardScreen />;
       case "Settings":
         return <SettingsScreen />;
+      case "Sales" :
+        return <TransactionList transactions={transactions} type="sales" onViewInvoice={handleViewInvoice} />
+      case "Purchases":
+        return <TransactionList transactions={transactions} type="purchase" onViewInvoice={handleViewInvoice} />   
       default:
         return null;
     }
@@ -692,37 +810,7 @@ export default function EnhancedFinancialApp() {
           </DialogHeader>
           <div className="py-4">
             
-            {/* {selectedInvoice && (
-              <div className="space-y-2">
-                <p className="text-sm">
-                  <strong>Invoice ID:</strong> {selectedInvoice.id}
-                </p>
-                <p className="text-sm">
-                  <strong>Type:</strong> {selectedInvoice.type}
-                </p>
-                <p className="text-sm">
-                  <strong>Date:</strong> {selectedInvoice.date}
-                </p>
-                <p className="text-sm">
-                  <strong>Party Name:</strong> {selectedInvoice.partyName}
-                </p>
-                <p className="text-sm">
-                  <strong>Amount:</strong> ₹{selectedInvoice.amount.toFixed(2)}
-                </p>
-                <p className="text-sm">
-                  <strong>CGST:</strong> {selectedInvoice.gst.cgst}%
-                </p>
-                <p className="text-sm">
-                  <strong>SGST:</strong> {selectedInvoice.gst.sgst}%
-                </p>
-                <p className="text-sm">
-                  <strong>IGST:</strong> {selectedInvoice.gst.igst}%
-                </p>
-                <p className="text-sm">
-                  <strong>Description:</strong> {selectedInvoice.description}
-                </p>
-              </div>
-            )} */}
+            
 
 {selectedInvoice && (
   <ScrollArea className="max-h-[80vh]">
@@ -738,7 +826,7 @@ export default function EnhancedFinancialApp() {
 
           <div className="text-right">
             <p className="text-sm font-semibold">Total Amount</p>
-            <p className="text-xl font-bold">₹{selectedInvoice.amount.toFixed(2)}</p>
+            <p className="text-xl font-bold">₹{selectedInvoice.totalAmount.toFixed(2)}</p>
           </div>
         </div>
       </div>
@@ -765,9 +853,9 @@ export default function EnhancedFinancialApp() {
         <TableBody>
           <TableRow>
             <TableCell>{selectedInvoice.description}</TableCell>
-            <TableCell className="text-right">1</TableCell>
+            <TableCell className="text-right">{selectedInvoice.quantity}</TableCell>
             <TableCell className="text-right">₹{selectedInvoice.amount.toFixed(2)}</TableCell>
-            <TableCell className="text-right">₹{selectedInvoice.amount.toFixed(2)}</TableCell>
+            <TableCell className="text-right">₹{selectedInvoice.totalAmountWithoutGST.toFixed(2)}</TableCell>
           </TableRow>
         </TableBody>
       </Table>
@@ -775,16 +863,14 @@ export default function EnhancedFinancialApp() {
       {/* GST and Total breakdown */}
       <div className="space-y-2 text-right">
         <div className="flex justify-end items-center space-x-1">
-          <IndianRupee className="h-4 w-4 text-green-500" />
-          <span className="text-sm font-semibold">CGST {selectedInvoice.gst.cgst}%: ₹{selectedInvoice.amount.toFixed(2)}</span>
+          <span className="text-sm font-semibold">CGST {selectedInvoice.gst.cgstPercentage}%: ₹{selectedInvoice.gst.cgst.toFixed(2)}</span>
+        </div>
+        <div className="flex justify-end items-center space-x-1">
+          <span className="text-sm font-semibold">SGST {selectedInvoice.gst.sgstPercentage}%: ₹{selectedInvoice.gst.sgst.toFixed(2)}</span>
         </div>
         <div className="flex justify-end items-center space-x-1">
           <IndianRupee className="h-4 w-4 text-green-500" />
-          <span className="text-sm font-semibold">SGST {selectedInvoice.gst.sgst}%: ₹{selectedInvoice.amount.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-end items-center space-x-1">
-          <IndianRupee className="h-4 w-4 text-green-500" />
-          <span className="text-lg font-semibold">Total: ₹{selectedInvoice.amount.toFixed(2)}</span>
+          <span className="text-lg font-semibold">Total: ₹{selectedInvoice.totalAmount.toFixed(2)}</span>
         </div>
       </div>
     </div>
