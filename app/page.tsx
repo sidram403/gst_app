@@ -27,7 +27,10 @@ import {
   ShoppingCart,
   Upload,
   Download,
-  Eye
+  Eye,
+  GitCompareArrows,
+  Check,
+  X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -60,17 +63,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
-import { Checkbox } from "@/components/ui/checkbox"
-
+} from "@/components/ui/table";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type Transaction = {
   id: string;
   type: "sales" | "purchase";
   date: string;
+  invoiceNum:string,
   partyName: string;
   amount: number;
-  totalAmountWithoutGST:number,
+  totalAmountWithoutGST: number;
   gst: {
     cgst: number;
     sgst: number;
@@ -80,6 +83,7 @@ type Transaction = {
   description: string;
   quantity: string;
   totalAmount: number;
+  gstinNum: string;
 };
 
 interface MicroserviceIconProps {
@@ -87,7 +91,7 @@ interface MicroserviceIconProps {
   title: string;
 }
 
-interface TransactionProps extends Omit<Transaction, 'id' | 'type'> {
+interface TransactionProps extends Omit<Transaction, "id" | "type"> {
   id: string;
   type: "sales" | "purchase";
   date: string;
@@ -105,8 +109,6 @@ interface InvoiceItemProps {
   transaction: TransactionProps;
   onView: (transaction: TransactionProps) => void;
 }
-
-
 
 interface SidebarItemProps {
   title: string;
@@ -126,6 +128,10 @@ interface TransactionListProps {
   transactions: TransactionProps[];
   type: string;
   onViewInvoice: (transaction: TransactionProps) => void;
+}
+
+interface TransactionForCompare {
+  transactions: TransactionProps[]
 }
 
 const MicroserviceIcon = ({ icon: Icon, title }: MicroserviceIconProps) => (
@@ -154,7 +160,12 @@ const InvoiceItem = ({ transaction, onView }: InvoiceItemProps) => (
   </div>
 );
 
-const InvoiceCreatedItem = ({ transaction, onView, onSelect, isSelected } : InvoiceCreatedItemProps) => (
+const InvoiceCreatedItem = ({
+  transaction,
+  onView,
+  onSelect,
+  isSelected,
+}: InvoiceCreatedItemProps) => (
   <div className="flex justify-between items-center py-2 border-b last:border-b-0">
     <div className="flex items-center space-x-2">
       <Checkbox
@@ -162,18 +173,22 @@ const InvoiceCreatedItem = ({ transaction, onView, onSelect, isSelected } : Invo
         onCheckedChange={() => onSelect(transaction.id)}
       />
       <div>
-        <Badge variant={transaction.type === 'sales' ? 'default' : 'secondary'}>{transaction.type}</Badge>
+        <Badge variant={transaction.type === "sales" ? "default" : "secondary"}>
+          {transaction.type}
+        </Badge>
         <p className="text-xs mt-1">{transaction.date}</p>
       </div>
     </div>
     <div className="flex items-center space-x-2">
-      <span className="text-sm font-semibold">₹{transaction.totalAmount.toFixed(2)}</span>
+      <span className="text-sm font-semibold">
+        ₹{transaction.totalAmount.toFixed(2)}
+      </span>
       <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
         <Eye className="h-4 w-4" />
       </Button>
     </div>
   </div>
-)
+);
 
 const SidebarItem = ({
   title,
@@ -225,10 +240,15 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
     return () => clearInterval(intervalId);
   }, []);
 
-  const totalBilling = transactions.reduce(
-    (sum: number, t: any) => sum + t.totalAmount,
-    0
-  );
+  const totalSalesAmount = transactions
+  .filter((t:any) => t.type === "sales")
+  .reduce((sum :number, t : any) => sum + t.totalAmount, 0);
+
+// Filter by "purchases" and calculate total purchases amount
+  const totalPurchasesAmount = transactions
+  .filter((t:any) => t.type === "purchase")
+  .reduce((sum : number, t : any) => sum + t.totalAmount, 0);
+  const totalProfit = totalSalesAmount - totalPurchasesAmount
   const filedReturns = 12; // This should be calculated based on actual data
   const itcBalance = 12234.56; // This should be calculated based on actual data
 
@@ -248,13 +268,25 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Billing</CardTitle>
+            <CardTitle className="text-sm font-medium">Sales</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹{totalSalesAmount.toFixed(2)}</div>
+            <p className="text-xs text-muted-foreground">
+              +20.1% from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Purchase</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{totalBilling.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₹{totalPurchasesAmount.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
-              +20.1% from last month
+            ₹{totalProfit.toFixed(2)} profit
             </p>
           </CardContent>
         </Card>
@@ -268,18 +300,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
             <p className="text-xs text-muted-foreground">3 pending</p>
           </CardContent>
         </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Transactions</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{transactions.length}</div>
-            <p className="text-xs text-muted-foreground">
-              +{transactions.length} new
-            </p>
-          </CardContent>
-        </Card>
+        
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ITC Balance</CardTitle>
@@ -340,14 +361,13 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
     const totalAmountWithoutGST = amount * quantity;
 
     const cgstPercentage = parseFloat(getStringValue(data.cgst)); // CGST percentage
-    const sgstPercentage = parseFloat(getStringValue(data.sgst)); 
+    const sgstPercentage = parseFloat(getStringValue(data.sgst));
     // Calculate CGST and SGST as 9% of the total amount
     const CGSTAmount = (totalAmountWithoutGST * cgstPercentage) / 100;
     const SGSTAmount = (totalAmountWithoutGST * sgstPercentage) / 100;
 
     // Calculate the final total amount including GST
     const totalAmount = totalAmountWithoutGST + CGSTAmount + SGSTAmount;
-    
 
     onSave(entryType, {
       ...data,
@@ -361,9 +381,11 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
       },
       description: getStringValue(data.description),
       partyName: getStringValue(data.partyName),
+      invoiceNum: getStringValue(data.invoiceNum),
       date: getStringValue(data.date),
-      quantity:getStringValue(data.quantity),
-      totalAmount
+      quantity: getStringValue(data.quantity),
+      totalAmount,
+      gstinNum: getStringValue(data.gstinNum)
     } as Transaction);
   };
 
@@ -401,6 +423,17 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
             />
           </div>
           <div className="space-y-2">
+            <Label htmlFor="invoiceNum" className="text-sm">
+              Inoice Number
+            </Label>
+            <Input
+              id="invoiceNum"
+              name="invoiceNum"
+              required
+              className="text-sm"
+            />
+          </div>
+          <div className="space-y-2">
             <Label htmlFor="partyName" className="text-sm">
               {entryType === "sales" ? "Customer Name" : "Vendor Name"}
             </Label>
@@ -409,6 +442,17 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
               name="partyName"
               required
               className="text-sm"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="gstinNum" className="text-sm">
+              {entryType === "sales" ? "Customer GSTIN Number (optional)" : "Vender GSTIN Number (optional)"}
+            </Label>
+            <Input
+              id="gstinNum"
+              name="gstinNum"
+              className="text-sm"
+              maxLength={15}
             />
           </div>
           <div className="space-y-2">
@@ -464,7 +508,6 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
               className="text-sm"
             />
           </div>
-          
         </div>
         <div className="space-y-2">
           <Label htmlFor="description" className="text-sm">
@@ -568,37 +611,44 @@ const SettingsScreen = () => (
   </div>
 );
 
-const TransactionList = ({ transactions, type, onViewInvoice } : TransactionListProps) => {
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([])
+const TransactionList = ({
+  transactions,
+  type,
+  onViewInvoice,
+}: TransactionListProps) => {
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
 
   const handleSelect = (id: string) => {
-    setSelectedInvoices(prev => 
-      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
-    )
-  }
+    setSelectedInvoices((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
+    );
+  };
 
   const handleViewSelected = () => {
     // Implement view functionality for selected invoices
-  }
+  };
 
   const handleDownloadSelected = () => {
     // Implement download functionality for selected invoices
-  }
+  };
 
   const handleImport = () => {
     // Implement import functionality
-  }
+  };
 
   const filteredTransactions = transactions.filter((t) => t.type === type);
-
 
   return (
     <div className="space-y-4">
       <div className="flex justify-between items-center">
-        <h2 className="text-xl sm:text-2xl font-semibold">{type === 'sales' ? 'Sales' : 'Purchases'}</h2>
+        <h2 className="text-xl sm:text-2xl font-semibold">
+          {type === "sales" ? "Sales" : "Purchases"}
+        </h2>
         <div className="space-x-2">
-         
-          <Button onClick={handleDownloadSelected} disabled={selectedInvoices.length === 0}>
+          <Button
+            onClick={handleDownloadSelected}
+            disabled={selectedInvoices.length === 0}
+          >
             <Download className="w-4 h-4 mr-2" /> Download
           </Button>
           <Button onClick={handleImport}>
@@ -620,15 +670,120 @@ const TransactionList = ({ transactions, type, onViewInvoice } : TransactionList
         ) : (
           // Message when no transactions of the selected type are found
           <div className="text-center text-gray-500">
-            No {type === "sales" ? "sales" : "purchases"} transactions available.
+            No {type === "sales" ? "sales" : "purchases"} transactions
+            available.
           </div>
         )}
       </ScrollArea>
     </div>
+  );
+};
+
+const CompareInvoicesScreen = ({ transactions } : TransactionForCompare) => {
+  const [compareType, setCompareType] = useState<'inwards' | 'outwards'>('outwards')
+  const [uploadedInvoices, setUploadedInvoices] = useState<Transaction[]>([])
+  const [comparisonResults, setComparisonResults] = useState<{ matched: number; unmatched: number; details: any[] }>({ matched: 0, unmatched: 0, details: [] })
+
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        const content = e.target?.result as string
+        try {
+          const parsedData = JSON.parse(content) as Transaction[]
+          setUploadedInvoices(parsedData)
+          compareInvoices(parsedData)
+        } catch (error) {
+          console.error("Error parsing JSON:", error)
+          // Handle error (e.g., show a toast notification)
+        }
+      }
+      reader.readAsText(file)
+    }
+  }
+
+  const compareInvoices = (uploadedInvoices: Transaction[]) => {
+    const results = uploadedInvoices.map(uploaded => {
+      const match = transactions.find(t => 
+        t.type === (compareType === 'outwards' ? 'sales' : 'purchase') &&
+        t.gstinNum === uploaded.gstinNum &&
+        t.totalAmount === uploaded.totalAmount &&
+        t.invoiceNum === uploaded.invoiceNum
+      )
+      return {
+        uploaded,
+        match: !!match,
+      }
+    })
+
+    const matched = results.filter(r => r.match).length
+    const unmatched = results.length - matched
+
+    setComparisonResults({
+      matched,
+      unmatched,
+      details: results,
+    })
+  }
+
+  return (
+    <div className="space-y-4">
+      <h2 className="text-xl sm:text-2xl font-semibold">Compare Invoices</h2>
+      <div className="flex space-x-2 sm:space-x-4">
+        <Button onClick={() => setCompareType('outwards')} variant={compareType === 'outwards' ? 'default' : 'outline'} className="text-xs sm:text-sm">Outwards</Button>
+        <Button onClick={() => setCompareType('inwards')} variant={compareType === 'inwards' ? 'default' : 'outline'} className="text-xs sm:text-sm">Inwards</Button>
+      </div>
+      <div className="flex items-center space-x-2">
+        <Input type="file" accept=".json" onChange={handleFileUpload} className="text-sm" />
+        <Button className="text-xs sm:text-sm">Upload</Button>
+      </div>
+      {comparisonResults.details.length > 0 && (
+        <div className="space-y-4">
+          <div className="flex justify-between">
+            <p className="text-sm">Matched: {comparisonResults.matched}</p>
+            <p className="text-sm">Unmatched: {comparisonResults.unmatched}</p>
+          </div>
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base sm:text-lg">Comparison Results</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ScrollArea className="h-[400px]">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Invoice ID</TableHead>
+                      <TableHead>GSTIN</TableHead>
+                      <TableHead>Total Amount</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {comparisonResults.details.map((result, index) => (
+                      <TableRow key={index}>
+                        <TableCell>{result.uploaded.invoiceNum}</TableCell>
+                        <TableCell>{result.uploaded.gstinNum}</TableCell>
+                        <TableCell>₹{result.uploaded.totalAmount.toFixed(2)}</TableCell>
+                        <TableCell>
+                          {result.match ? (
+                            <Check className="h-4 w-4 text-green-500" />
+                          ) : (
+                            <X className="h-4 w-4 text-red-500" />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+    </div>
   )
 }
-
-
 
 export default function EnhancedFinancialApp() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -645,10 +800,10 @@ export default function EnhancedFinancialApp() {
     { title: "Billing", icon: FileText },
     { title: "Sales", icon: Weight },
     { title: "Purchases", icon: ShoppingCart },
+    { title: 'Compare Invoices', icon: GitCompareArrows },
     { title: "AI Bot", icon: MessageSquare },
     { title: "GST Dashboard", icon: Calculator },
     { title: "Settings", icon: Settings },
-   
   ];
 
   const handleNavigation = (item: any) => {
@@ -696,10 +851,24 @@ export default function EnhancedFinancialApp() {
         return <GSTDashboardScreen />;
       case "Settings":
         return <SettingsScreen />;
-      case "Sales" :
-        return <TransactionList transactions={transactions} type="sales" onViewInvoice={handleViewInvoice} />
+      case "Sales":
+        return (
+          <TransactionList
+            transactions={transactions}
+            type="sales"
+            onViewInvoice={handleViewInvoice}
+          />
+        );
       case "Purchases":
-        return <TransactionList transactions={transactions} type="purchase" onViewInvoice={handleViewInvoice} />   
+        return (
+          <TransactionList
+            transactions={transactions}
+            type="purchase"
+            onViewInvoice={handleViewInvoice}
+          />
+        );
+        case 'Compare Invoices':
+          return <CompareInvoicesScreen transactions={transactions} />  
       default:
         return null;
     }
@@ -720,7 +889,10 @@ export default function EnhancedFinancialApp() {
         >
           <div className="p-4">
             <div className="flex items-center justify-between mb-6">
-              <ArrowLeft onClick={() => setSidebarOpen(false)} className="h-7 w-7" />
+              <ArrowLeft
+                onClick={() => setSidebarOpen(false)}
+                className="h-7 w-7"
+              />
               <div className="flex items-center flex-1 ml-4">
                 <Avatar>
                   <AvatarImage src="https://xsgames.co/randomusers/avatar.php?g=male" />
@@ -806,77 +978,92 @@ export default function EnhancedFinancialApp() {
       <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
         <DialogContent className="sm:max-w-[425px]">
           <DialogHeader>
-            <DialogTitle className="text-lg text-center">Invoice Details</DialogTitle>
+            <DialogTitle className="text-lg text-center">
+              Invoice Details
+            </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            
-            
+            {selectedInvoice && (
+              <ScrollArea className="max-h-[80vh]">
+                <div className="space-y-4 p-4">
+                  {/* Header section */}
+                  <div className="flex flex-col space-y-2">
+                    <div className="flex justify-between items-center">
+                      <div className="flex flex-col">
+                        <h2 className="text-lg font-bold">Invoice</h2>
+                        <p className="text-sm font-semibold">
+                          {selectedInvoice.invoiceNum}
+                        </p>
+                      </div>
 
-{selectedInvoice && (
-  <ScrollArea className="max-h-[80vh]">
-    <div className="space-y-4 p-4">
-      {/* Header section */}
-      <div className="flex flex-col space-y-2">
-        <div className="flex justify-between items-center">
-          <div className="flex flex-col">
-            <h2 className="text-lg font-bold">Invoice</h2>
-            <p className="text-sm font-semibold">{selectedInvoice.id}</p>
-          </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold">{selectedInvoice.type==="sales" ? "Customer GSTIN" : "Vendor GSTIN"} </p>
+                        <p className="text-sm font-bold">
+                          {selectedInvoice.gstinNum}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
 
+                  {/* Date and party name */}
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <div className="flex items-center">
+                      <CalendarIcon className="mr-1 h-3 w-3" />
+                      {selectedInvoice.date}
+                    </div>
+                    <div>{selectedInvoice.partyName}</div>
+                  </div>
 
-          <div className="text-right">
-            <p className="text-sm font-semibold">Total Amount</p>
-            <p className="text-xl font-bold">₹{selectedInvoice.totalAmount.toFixed(2)}</p>
-          </div>
-        </div>
-      </div>
+                  {/* Table with description, quantity, and prices */}
+                  <Table className="text-xs">
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Description</TableHead>
+                        <TableHead className="text-right">Qty</TableHead>
+                        <TableHead className="text-right">Unit Price</TableHead>
+                        <TableHead className="text-right">Total</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      <TableRow>
+                        <TableCell>{selectedInvoice.description}</TableCell>
+                        <TableCell className="text-right">
+                          {selectedInvoice.quantity}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{selectedInvoice.amount.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          ₹{selectedInvoice.totalAmountWithoutGST.toFixed(2)}
+                        </TableCell>
+                      </TableRow>
+                    </TableBody>
+                  </Table>
 
-      {/* Date and party name */}
-      <div className="flex justify-between text-xs text-gray-500">
-        <div className="flex items-center">
-          <CalendarIcon className="mr-1 h-3 w-3" />
-          {selectedInvoice.date}
-        </div>
-        <div>{selectedInvoice.partyName}</div>
-      </div>
-
-      {/* Table with description, quantity, and prices */}
-      <Table className="text-xs">
-        <TableHeader>
-          <TableRow>
-            <TableHead>Description</TableHead>
-            <TableHead className="text-right">Qty</TableHead>
-            <TableHead className="text-right">Unit Price</TableHead>
-            <TableHead className="text-right">Total</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          <TableRow>
-            <TableCell>{selectedInvoice.description}</TableCell>
-            <TableCell className="text-right">{selectedInvoice.quantity}</TableCell>
-            <TableCell className="text-right">₹{selectedInvoice.amount.toFixed(2)}</TableCell>
-            <TableCell className="text-right">₹{selectedInvoice.totalAmountWithoutGST.toFixed(2)}</TableCell>
-          </TableRow>
-        </TableBody>
-      </Table>
-
-      {/* GST and Total breakdown */}
-      <div className="space-y-2 text-right">
-        <div className="flex justify-end items-center space-x-1">
-          <span className="text-sm font-semibold">CGST {selectedInvoice.gst.cgstPercentage}%: ₹{selectedInvoice.gst.cgst.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-end items-center space-x-1">
-          <span className="text-sm font-semibold">SGST {selectedInvoice.gst.sgstPercentage}%: ₹{selectedInvoice.gst.sgst.toFixed(2)}</span>
-        </div>
-        <div className="flex justify-end items-center space-x-1">
-          <IndianRupee className="h-4 w-4 text-green-500" />
-          <span className="text-lg font-semibold">Total: ₹{selectedInvoice.totalAmount.toFixed(2)}</span>
-        </div>
-      </div>
-    </div>
-  </ScrollArea>
-)}
-
+                  {/* GST and Total breakdown */}
+                  <div className="space-y-2 text-right">
+                    <div className="flex justify-end items-center space-x-1">
+                      <span className="text-sm font-semibold">
+                        CGST {selectedInvoice.gst.cgstPercentage}%: ₹
+                        {selectedInvoice.gst.cgst.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-end items-center space-x-1">
+                      <span className="text-sm font-semibold">
+                        SGST {selectedInvoice.gst.sgstPercentage}%: ₹
+                        {selectedInvoice.gst.sgst.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-end items-center space-x-1">
+                      <IndianRupee className="h-4 w-4 text-green-500" />
+                      <span className="text-lg font-semibold">
+                        Total: ₹{selectedInvoice.totalAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            )}
           </div>
         </DialogContent>
       </Dialog>
