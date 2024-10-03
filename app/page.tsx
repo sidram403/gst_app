@@ -30,7 +30,9 @@ import {
   Eye,
   GitCompareArrows,
   Check,
-  X
+  X,
+  Trash2,
+  Plus
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -66,13 +68,21 @@ import {
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
 
+type InvoiceItems = {
+  description: string;
+  quantity: string;
+  unitPrice: number;
+  totalPrice: number;
+};
+
 type Transaction = {
   id: string;
   type: "sales" | "purchase";
   date: string;
-  invoiceNum:string,
+  invoiceNum: string;
   partyName: string;
-  amount: number;
+  gstinNum: string;
+  items: InvoiceItems[];
   totalAmountWithoutGST: number;
   gst: {
     cgst: number;
@@ -80,10 +90,7 @@ type Transaction = {
     cgstPercentage: number;
     sgstPercentage: number;
   };
-  description: string;
-  quantity: string;
   totalAmount: number;
-  gstinNum: string;
 };
 
 interface MicroserviceIconProps {
@@ -343,185 +350,179 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
   );
 };
 
-const BillingScreen = ({ onSave }: BillingScreenProps) => {
-  const [entryType, setEntryType] = useState<"sales" | "purchase">("sales");
+const BillingScreen = ({ onSave } : BillingScreenProps) => {
+  const [entryType, setEntryType] = useState<'sales' | 'purchase'>('sales')
+  const [items, setItems] = useState<InvoiceItems[]>([{ description: '', quantity: '1', unitPrice: 0, totalPrice: 0 }])
+  const [gstPercentage, setGstPercentage] = useState(18)
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const data = Object.fromEntries(formData.entries());
+  const handleAddItem = () => {
+    setItems([...items, { description: '', quantity: '1', unitPrice: 0, totalPrice: 0 }])
+  }
 
-    // Convert FormDataEntryValue to string safely
-    const getStringValue = (value: FormDataEntryValue) =>
-      typeof value === "string" ? value : "";
+  const handleRemoveItem = (index: number) => {
+    setItems(items.filter((_, i) => i !== index))
+  }
 
-    const amount = parseFloat(getStringValue(data.amount));
-    const quantity = parseFloat(getStringValue(data.quantity));
+  const handleItemChange = (index: number, field: keyof InvoiceItems, value: string | number) => {
+    const newItems = [...items]
+    newItems[index] = { ...newItems[index], [field]: value }
+    
+    if (field === 'quantity' || field === 'unitPrice') {
+      const quantity = parseFloat(newItems[index].quantity) || 0
+      const unitPrice = parseFloat(newItems[index].unitPrice.toString()) || 0
+      newItems[index].totalPrice = quantity * unitPrice
+    }
+    
+    setItems(newItems)
+  }
 
-    const totalAmountWithoutGST = amount * quantity;
+  const calculateTotals = () => {
+    const totalAmountWithoutGST = items.reduce((sum, item) => sum + item.totalPrice, 0)
+    const gstAmount = (totalAmountWithoutGST * gstPercentage) / 100
+    const totalAmount = totalAmountWithoutGST + gstAmount
 
-    const cgstPercentage = parseFloat(getStringValue(data.cgst)); // CGST percentage
-    const sgstPercentage = parseFloat(getStringValue(data.sgst));
-    // Calculate CGST and SGST as 9% of the total amount
-    const CGSTAmount = (totalAmountWithoutGST * cgstPercentage) / 100;
-    const SGSTAmount = (totalAmountWithoutGST * sgstPercentage) / 100;
-
-    // Calculate the final total amount including GST
-    const totalAmount = totalAmountWithoutGST + CGSTAmount + SGSTAmount;
-
-    onSave(entryType, {
-      ...data,
-      amount: amount,
+    return {
       totalAmountWithoutGST,
       gst: {
-        cgst: CGSTAmount,
-        sgst: SGSTAmount,
-        cgstPercentage, // Store CGST percentage
-        sgstPercentage, // Store SGST percentage
+        cgst: gstAmount / 2,
+        sgst: gstAmount / 2,
+        cgstPercentage: gstPercentage / 2,
+        sgstPercentage: gstPercentage / 2,
       },
-      description: getStringValue(data.description),
-      partyName: getStringValue(data.partyName),
-      invoiceNum: getStringValue(data.invoiceNum),
-      date: getStringValue(data.date),
-      quantity: getStringValue(data.quantity),
       totalAmount,
-      gstinNum: getStringValue(data.gstinNum)
-    } as Transaction);
-  };
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    const formData = new FormData(e.target as HTMLFormElement)
+    const { totalAmountWithoutGST, gst, totalAmount } = calculateTotals()
+
+    const transaction: Transaction = {
+      id: `${entryType.toUpperCase()}-${Date.now()}`,
+      type: entryType,
+      date: formData.get('date') as string,
+      invoiceNum: formData.get('invoiceNum') as string,
+      partyName: formData.get('partyName') as string,
+      gstinNum: formData.get('gstinNum') as string,
+      items,
+      totalAmountWithoutGST,
+      gst,
+      totalAmount,
+    }
+
+    onSave(entryType,transaction)
+  }
 
   return (
     <div className="space-y-4">
       <h2 className="text-xl sm:text-2xl font-semibold">Billing</h2>
       <div className="flex space-x-2 sm:space-x-4">
-        <Button
-          onClick={() => setEntryType("sales")}
-          variant={entryType === "sales" ? "default" : "outline"}
-          className="text-xs sm:text-sm"
-        >
-          Sales Entry
-        </Button>
-        <Button
-          onClick={() => setEntryType("purchase")}
-          variant={entryType === "purchase" ? "default" : "outline"}
-          className="text-xs sm:text-sm"
-        >
-          Purchase Entry
-        </Button>
+        <Button onClick={() => setEntryType('sales')} variant={entryType === 'sales' ? 'default' : 'outline'} className="text-xs sm:text-sm">Sales Entry</Button>
+        <Button onClick={() => setEntryType('purchase')} variant={entryType === 'purchase' ? 'default' : 'outline'} className="text-xs sm:text-sm">Purchase Entry</Button>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="date" className="text-sm">
-              Date
-            </Label>
-            <Input
-              id="date"
-              name="date"
-              type="date"
-              required
-              className="text-sm"
-            />
+            <Label htmlFor="invoiceNum" className="text-sm">Invoice Number</Label>
+            <Input id="invoiceNum" name="invoiceNum" required className="text-sm" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="invoiceNum" className="text-sm">
-              Inoice Number
-            </Label>
-            <Input
-              id="invoiceNum"
-              name="invoiceNum"
-              required
-              className="text-sm"
-            />
+            <Label htmlFor="date" className="text-sm">Date</Label>
+            <Input id="date" name="date" type="date" required className="text-sm" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="partyName" className="text-sm">
-              {entryType === "sales" ? "Customer Name" : "Vendor Name"}
-            </Label>
-            <Input
-              id="partyName"
-              name="partyName"
-              required
-              className="text-sm"
-            />
+            <Label htmlFor="partyName" className="text-sm">{entryType === 'sales' ? 'Customer Name' : 'Vendor Name'}</Label>
+            <Input id="partyName" name="partyName" required className="text-sm" />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="gstinNum" className="text-sm">
-              {entryType === "sales" ? "Customer GSTIN Number (optional)" : "Vender GSTIN Number (optional)"}
-            </Label>
-            <Input
-              id="gstinNum"
-              name="gstinNum"
-              className="text-sm"
-              maxLength={15}
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="amount" className="text-sm">
-              Amount (before GST)
-            </Label>
-            <Input
-              id="amount"
-              name="amount"
-              type="number"
-              step="0.01"
-              required
-              className="text-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cgst" className="text-sm">
-              Quantity
-            </Label>
-            <Input
-              id="quantity"
-              name="quantity"
-              type="number"
-              step="0.01"
-              required
-              className="text-sm"
-              min="1"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="cgst" className="text-sm">
-              CGST (%)
-            </Label>
-            <Input
-              id="cgst"
-              name="cgst"
-              type="number"
-              step="0.01"
-              required
-              className="text-sm"
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="sgst" className="text-sm">
-              SGST (%)
-            </Label>
-            <Input
-              id="sgst"
-              name="sgst"
-              type="number"
-              step="0.01"
-              required
-              className="text-sm"
-            />
+            <Label htmlFor="gstinNum" className="text-sm">GSTIN</Label>
+            <Input id="gstinNum" name="gstinNum" required className="text-sm" />
           </div>
         </div>
+        
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-sm">
-            Description
-          </Label>
-          <Textarea id="description" name="description" className="text-sm" />
+          <Label className="text-sm">Items</Label>
+          {items.map((item, index) => (
+            <div key={index} className="flex flex-wrap items-end gap-2 pb-2 border-b">
+              <div className="flex-1 min-w-[200px]">
+                <Label htmlFor={`description-${index}`} className="text-xs">Description</Label>
+                <Input
+                  id={`description-${index}`}
+                  value={item.description}
+                  onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                  className="text-sm"
+                  required
+                />
+              </div>
+              <div className="w-20">
+                <Label htmlFor={`quantity-${index}`} className="text-xs">Quantity</Label>
+                <Input
+                  id={`quantity-${index}`}
+                  type="number"
+                  value={item.quantity}
+                  onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                  className="text-sm"
+                  required
+                />
+              </div>
+              <div className="w-28">
+                <Label htmlFor={`unitPrice-${index}`} className="text-xs">Unit Price</Label>
+                <Input
+                  id={`unitPrice-${index}`}
+                  type="number"
+                  step="0.01"
+                  value={item.unitPrice}
+                  onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))}
+                  className="text-sm"
+                  required
+                />
+              </div>
+              <div className="w-28">
+                <Label className="text-xs">Total Price</Label>
+                <Input
+                  value={item.totalPrice.toFixed(2)}
+                  readOnly
+                  className="text-sm bg-muted"
+                />
+              </div>
+              <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)} disabled={items.length === 1}>
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+          <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="mt-2">
+            <Plus className="h-4 w-4 mr-2" /> Add Item
+          </Button>
         </div>
-        <Button type="submit" className="w-full sm:w-auto">
-          Save {entryType.charAt(0).toUpperCase() + entryType.slice(1)} Entry
-        </Button>
+
+        <div className="space-y-2">
+          <Label htmlFor="gstPercentage" className="text-sm">GST Percentage</Label>
+          <Select value={gstPercentage.toString()} onValueChange={(value) => setGstPercentage(parseInt(value))}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Select GST %" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="5">5%</SelectItem>
+              <SelectItem value="12">12%</SelectItem>
+              <SelectItem value="18">18%</SelectItem>
+              <SelectItem value="28">28%</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="space-y-2 text-right">
+          <p className="text-sm">Total (without GST): ₹{calculateTotals().totalAmountWithoutGST.toFixed(2)}</p>
+          <p className="text-sm">CGST ({gstPercentage / 2}%): ₹{calculateTotals().gst.cgst.toFixed(2)}</p>
+          <p className="text-sm">SGST ({gstPercentage / 2}%): ₹{calculateTotals().gst.sgst.toFixed(2)}</p>
+          <p className="text-lg font-semibold">Total Amount: ₹{calculateTotals().totalAmount.toFixed(2)}</p>
+        </div>
+
+        <Button type="submit" className="w-full sm:w-auto">Save {entryType.charAt(0).toUpperCase() + entryType.slice(1)} Entry</Button>
       </form>
     </div>
-  );
-};
+  )
+}
 
 const AIBotScreen = () => (
   <div className="space-y-4">
@@ -740,46 +741,44 @@ const CompareInvoicesScreen = ({ transactions } : TransactionForCompare) => {
       </div>
       {comparisonResults.details.length > 0 && (
         <div className="space-y-4">
-          <div className="flex justify-between">
-            <p className="text-sm">Matched: {comparisonResults.matched}</p>
-            <p className="text-sm">Unmatched: {comparisonResults.unmatched}</p>
-          </div>
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base sm:text-lg">Comparison Results</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ScrollArea className="h-[400px]">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Invoice ID</TableHead>
-                      <TableHead>GSTIN</TableHead>
-                      <TableHead>Total Amount</TableHead>
-                      <TableHead>Status</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {comparisonResults.details.map((result, index) => (
-                      <TableRow key={index}>
-                        <TableCell>{result.uploaded.invoiceNum}</TableCell>
-                        <TableCell>{result.uploaded.gstinNum}</TableCell>
-                        <TableCell>₹{result.uploaded.totalAmount.toFixed(2)}</TableCell>
-                        <TableCell>
-                          {result.match ? (
-                            <Check className="h-4 w-4 text-green-500" />
-                          ) : (
-                            <X className="h-4 w-4 text-red-500" />
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </ScrollArea>
-            </CardContent>
-          </Card>
+        <div className="flex justify-between">
+          <p className="text-sm">Matched: {comparisonResults.matched}</p>
+          <p className="text-sm">Unmatched: {comparisonResults.unmatched}</p>
         </div>
+        <div className="overflow-x-auto">
+          <div className="inline-block min-w-full align-middle">
+            <div className="overflow-hidden border rounded-lg">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="min-w-[100px]">Invoice ID</TableHead>
+                    <TableHead className="min-w-[120px]">GSTIN</TableHead>
+                    <TableHead className="min-w-[120px]">Total Amount</TableHead>
+                    <TableHead className="min-w-[80px]">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {comparisonResults.details.map((result, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">{result.uploaded.invoiceNum}</TableCell>
+                      <TableCell>{result.uploaded.gstinNum}</TableCell>
+                      <TableCell>₹{result.uploaded.totalAmount.toFixed(2)}</TableCell>
+                      <TableCell>
+                        {result.match ? (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <X className="w-5 h-5 text-red-500" />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </div>
+      </div>
+    
       )}
     </div>
   )
@@ -997,7 +996,7 @@ export default function EnhancedFinancialApp() {
                       </div>
 
                       <div className="text-right">
-                        <p className="text-sm font-semibold">{selectedInvoice.type==="sales" ? "Customer GSTIN" : "Vendor GSTIN"} </p>
+                        <p className="text-sm font-semibold">{selectedInvoice.type === "sales" ? "Customer GSTIN" : "Vendor GSTIN"} </p>
                         <p className="text-sm font-bold">
                           {selectedInvoice.gstinNum}
                         </p>
@@ -1025,18 +1024,20 @@ export default function EnhancedFinancialApp() {
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      <TableRow>
-                        <TableCell>{selectedInvoice.description}</TableCell>
-                        <TableCell className="text-right">
-                          {selectedInvoice.quantity}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          ₹{selectedInvoice.amount.toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          ₹{selectedInvoice.totalAmountWithoutGST.toFixed(2)}
-                        </TableCell>
-                      </TableRow>
+                      {selectedInvoice.items.map((item, index) => (
+                        <TableRow key={index}>
+                          <TableCell>{item.description}</TableCell>
+                          <TableCell className="text-right">
+                            {item.quantity}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ₹{item.unitPrice.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            ₹{item.totalPrice.toFixed(2)}
+                          </TableCell>
+                        </TableRow>
+                      ))}
                     </TableBody>
                   </Table>
 
@@ -1067,7 +1068,6 @@ export default function EnhancedFinancialApp() {
           </div>
         </DialogContent>
       </Dialog>
-
       <Toaster />
     </div>
   );
