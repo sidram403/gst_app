@@ -41,10 +41,20 @@ import {
   Filter,
   ArrowRightIcon,
   TrendingDown,
-  ArrowUpIcon
+  ArrowUpIcon,
+  BarChart2,
+  AlertTriangle,
+  CalendarCheck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -60,7 +70,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -77,16 +87,31 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Calendar } from "@/components/ui/calendar"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from "@/components/ui/accordion"
+} from "@/components/ui/accordion";
 
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RePieChart, Pie, Cell } from 'recharts'
+import {
+  ResponsiveContainer,
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  PieChart as RePieChart,
+  Pie,
+  Cell,
+  BarChart as BarCharts,
+  Bar,
+ LineChart, 
+ Line
+} from "recharts";
 
 type InvoiceItems = {
   description: string;
@@ -158,42 +183,36 @@ interface TransactionListProps {
 }
 
 interface TransactionForCompare {
-  transactions: TransactionProps[]
+  transactions: TransactionProps[];
 }
 
 type GstReturnsType = {
-  totalTaxableValue: string
-  totalCGST: string
-  totalSGST: string
-  totalIGST: string
-  b2bInvoices: string[]
-  b2cInvoices: string[]
-}
+  totalTaxableValue: string;
+  totalCGST: string;
+  totalSGST: string;
+  totalIGST: string;
+  b2bInvoices: string[];
+  b2cInvoices: string[];
+};
 
 type ITCEntry = {
-  id: string
-  description: string
-  amount: number
-  category: string
-  date: string
-  invoiceNumber: string
-}
+  id: string;
+  description: string;
+  amount: number;
+  category: string;
+  date: string;
+  invoiceNumber: string;
+};
 
 type ITCEntryDialogProps = {
-  isOpen: boolean
-  onClose: () => void
-  onSave: (entry: ITCEntry | Omit<ITCEntry, 'id'>) => void
-  title: string
-  initialData?: ITCEntry | null
-}
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (entry: ITCEntry | Omit<ITCEntry, "id">) => void;
+  title: string;
+  initialData?: ITCEntry | null;
+};
 
-type ComplianceEvent = {
-  id: string
-  date: Date
-  title: string
-  type: 'filing' | 'payment' | 'other'
-  description: string
-}
+
 
 const MicroserviceIcon = ({ icon: Icon, title }: MicroserviceIconProps) => (
   <div className="flex flex-col items-center justify-center p-4">
@@ -218,23 +237,26 @@ const InvoiceItem = ({ transaction, onView }: InvoiceItemProps) => (
   //       <FileText className="h-4 w-4" />
   //     </Button>
   //   </div>
-    
+
   // </div>
   <div key={transaction.id} className="flex items-center mb-4 last:mb-0">
-                 <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
-     <Eye className="h-4 w-4" />
+    <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
+      <Eye className="h-4 w-4" />
     </Button>
-                <div className="ml-4 space-y-1">
-                  <p className="text-sm font-medium leading-none">{transaction.partyName}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {transaction.type === 'sales' ? 'Invoice' : 'Bill'} #{transaction.invoiceNum}
-                  </p>
-                </div>
-                <div className="ml-auto font-medium">
-                  {transaction.type === 'sales' ? '+' : '-'}₹{transaction.totalAmount.toFixed(2)}
-                </div>
-               
-              </div>
+    <div className="ml-4 space-y-1">
+      <p className="text-sm font-medium leading-none">
+        {transaction.partyName}
+      </p>
+      <p className="text-sm text-muted-foreground">
+        {transaction.type === "sales" ? "Invoice" : "Bill"} #
+        {transaction.invoiceNum}
+      </p>
+    </div>
+    <div className="ml-auto font-medium">
+      {transaction.type === "sales" ? "+" : "-"}₹
+      {transaction.totalAmount.toFixed(2)}
+    </div>
+  </div>
 );
 
 const InvoiceCreatedItem = ({
@@ -318,14 +340,14 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
   }, []);
 
   const totalSalesAmount = transactions
-  .filter((t:any) => t.type === "sales")
-  .reduce((sum :number, t : any) => sum + t.totalAmount, 0);
+    .filter((t: any) => t.type === "sales")
+    .reduce((sum: number, t: any) => sum + t.totalAmount, 0);
 
-// Filter by "purchases" and calculate total purchases amount
+  // Filter by "purchases" and calculate total purchases amount
   const totalPurchasesAmount = transactions
-  .filter((t:any) => t.type === "purchase")
-  .reduce((sum : number, t : any) => sum + t.totalAmount, 0);
-  const totalProfit = totalSalesAmount - totalPurchasesAmount
+    .filter((t: any) => t.type === "purchase")
+    .reduce((sum: number, t: any) => sum + t.totalAmount, 0);
+  const totalProfit = totalSalesAmount - totalPurchasesAmount;
   const filedReturns = 12; // This should be calculated based on actual data
   const itcBalance = 12234.56; // This should be calculated based on actual data
 
@@ -340,22 +362,22 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
     { icon: BookOpen, title: "Compliance Guide" },
   ];
   const areaChartData = [
-    { name: 'Jan', Sales: 4000, Purchases: 2400 },
-    { name: 'Feb', Sales: 3000, Purchases: 1398 },
-    { name: 'Mar', Sales: 2000, Purchases: 9800 },
-    { name: 'Apr', Sales: 2780, Purchases: 3908 },
-    { name: 'May', Sales: 1890, Purchases: 4800 },
-    { name: 'Jun', Sales: 2390, Purchases: 3800 },
-  ]
-  
+    { name: "Jan", Sales: 4000, Purchases: 2400 },
+    { name: "Feb", Sales: 3000, Purchases: 1398 },
+    { name: "Mar", Sales: 2000, Purchases: 9800 },
+    { name: "Apr", Sales: 2780, Purchases: 3908 },
+    { name: "May", Sales: 1890, Purchases: 4800 },
+    { name: "Jun", Sales: 2390, Purchases: 3800 },
+  ];
+
   const pieChartData = [
-    { name: 'CGST', value: 25 },
-    { name: 'SGST', value: 25 },
-    { name: 'IGST', value: 35 },
-    { name: 'Cess', value: 15 },
-  ]
-  
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
+    { name: "CGST", value: 25 },
+    { name: "SGST", value: 25 },
+    { name: "IGST", value: 35 },
+    { name: "Cess", value: 15 },
+  ];
+
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
   return (
     <div className="space-y-4">
@@ -366,7 +388,9 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{totalSalesAmount.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              ₹{totalSalesAmount.toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">
               +20.1% from last month
             </p>
@@ -378,9 +402,11 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">₹{totalPurchasesAmount.toFixed(2)}</div>
+            <div className="text-2xl font-bold">
+              ₹{totalPurchasesAmount.toFixed(2)}
+            </div>
             <p className="text-xs text-muted-foreground">
-            ₹{totalProfit.toFixed(2)} profit
+              ₹{totalProfit.toFixed(2)} profit
             </p>
           </CardContent>
         </Card>
@@ -394,7 +420,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
             <p className="text-xs text-muted-foreground">3 pending</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">ITC Balance</CardTitle>
@@ -421,23 +447,38 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
         </CardHeader>
         <CardContent className="pl-2">
           <ResponsiveContainer width="100%" height={300}>
-            <AreaChart data={areaChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <AreaChart
+              data={areaChartData}
+              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+            >
               <defs>
                 <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
                 </linearGradient>
                 <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
-                  <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
                 </linearGradient>
               </defs>
               <XAxis dataKey="name" />
               <YAxis />
               <CartesianGrid strokeDasharray="3 3" />
               <Tooltip />
-              <Area type="monotone" dataKey="Sales" stroke="#8884d8" fillOpacity={1} fill="url(#colorSales)" />
-              <Area type="monotone" dataKey="Purchases" stroke="#82ca9d" fillOpacity={1} fill="url(#colorPurchases)" />
+              <Area
+                type="monotone"
+                dataKey="Sales"
+                stroke="#8884d8"
+                fillOpacity={1}
+                fill="url(#colorSales)"
+              />
+              <Area
+                type="monotone"
+                dataKey="Purchases"
+                stroke="#82ca9d"
+                fillOpacity={1}
+                fill="url(#colorPurchases)"
+              />
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
@@ -445,16 +486,18 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
       <Card className="col-span-full md:col-span-2">
         <CardHeader>
           <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>You have {transactions.length} total transactions</CardDescription>
+          <CardDescription>
+            You have {transactions.length} total transactions
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <ScrollArea className="h-[300px]">
-            {transactions.slice(0, 5).map((transaction:any) => (
+            {transactions.slice(0, 5).map((transaction: any) => (
               <InvoiceItem
-              key={transaction.id}
-              transaction={transaction}
-              onView={onViewInvoice}
-            />
+                key={transaction.id}
+                transaction={transaction}
+                onView={onViewInvoice}
+              />
             ))}
           </ScrollArea>
         </CardContent>
@@ -483,6 +526,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
           </ScrollArea>
         </CardContent>
       </Card> */}
+      
       <Card className="col-span-full md:col-span-2">
         <CardHeader>
           <CardTitle>Tax Breakdown</CardTitle>
@@ -501,7 +545,10 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
                 dataKey="value"
               >
                 {pieChartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  <Cell
+                    key={`cell-${index}`}
+                    fill={COLORS[index % COLORS.length]}
+                  />
                 ))}
               </Pie>
               <Tooltip />
@@ -510,8 +557,13 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
           <div className="mt-4 grid grid-cols-2 gap-4">
             {pieChartData.map((entry, index) => (
               <div key={entry.name} className="flex items-center">
-                <div className={`w-3 h-3 rounded-full mr-2`} style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
-                <span className="text-sm">{entry.name}: {entry.value}%</span>
+                <div
+                  className={`w-3 h-3 rounded-full mr-2`}
+                  style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                ></div>
+                <span className="text-sm">
+                  {entry.name}: {entry.value}%
+                </span>
               </div>
             ))}
           </div>
@@ -531,61 +583,89 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
             <TabsContent value="cashflow" className="space-y-4">
               <div className="flex items-center">
                 <ArrowUpIcon className="mr-2 h-4 w-4 text-green-500" />
-                <span className="font-medium text-green-500">8.2% increase in operating cash flow</span>
+                <span className="font-medium text-green-500">
+                  8.2% increase in operating cash flow
+                </span>
               </div>
-              <p className="text-sm text-muted-foreground">Your business generated more cash from its core operations this month compared to last month.</p>
+              <p className="text-sm text-muted-foreground">
+                Your business generated more cash from its core operations this
+                month compared to last month.
+              </p>
             </TabsContent>
             <TabsContent value="profitability" className="space-y-4">
               <div className="flex items-center">
                 <TrendingUp className="mr-2 h-4 w-4 text-green-500" />
-                <span className="font-medium text-green-500">Gross profit margin improved by 3.5%</span>
+                <span className="font-medium text-green-500">
+                  Gross profit margin improved by 3.5%
+                </span>
               </div>
-              <p className="text-sm text-muted-foreground">Your business is becoming more efficient at producing goods or services, resulting in higher profitability.</p>
+              <p className="text-sm text-muted-foreground">
+                Your business is becoming more efficient at producing goods or
+                services, resulting in higher profitability.
+              </p>
             </TabsContent>
             <TabsContent value="efficiency" className="space-y-4">
               <div className="flex items-center">
                 <TrendingDown className="mr-2 h-4 w-4 text-red-500" />
-                <span className="font-medium text-red-500">Inventory turnover decreased by 2.1 days</span>
+                <span className="font-medium text-red-500">
+                  Inventory turnover decreased by 2.1 days
+                </span>
               </div>
-              <p className="text-sm text-muted-foreground">Your business is taking slightly longer to sell through its inventory. Consider reviewing your inventory management practices.</p>
+              <p className="text-sm text-muted-foreground">
+                Your business is taking slightly longer to sell through its
+                inventory. Consider reviewing your inventory management
+                practices.
+              </p>
             </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+          </Tabs>
+        </CardContent>
+      </Card>
     </div>
   );
 };
 
-const BillingScreen = ({ onSave } : BillingScreenProps) => {
-  const [entryType, setEntryType] = useState<'sales' | 'purchase'>('sales')
-  const [items, setItems] = useState<InvoiceItems[]>([{ description: '', quantity: '1', unitPrice: 0, totalPrice: 0 }])
-  const [gstPercentage, setGstPercentage] = useState(18)
+const BillingScreen = ({ onSave }: BillingScreenProps) => {
+  const [entryType, setEntryType] = useState<"sales" | "purchase">("sales");
+  const [items, setItems] = useState<InvoiceItems[]>([
+    { description: "", quantity: "1", unitPrice: 0, totalPrice: 0 },
+  ]);
+  const [gstPercentage, setGstPercentage] = useState(18);
 
   const handleAddItem = () => {
-    setItems([...items, { description: '', quantity: '1', unitPrice: 0, totalPrice: 0 }])
-  }
+    setItems([
+      ...items,
+      { description: "", quantity: "1", unitPrice: 0, totalPrice: 0 },
+    ]);
+  };
 
   const handleRemoveItem = (index: number) => {
-    setItems(items.filter((_, i) => i !== index))
-  }
+    setItems(items.filter((_, i) => i !== index));
+  };
 
-  const handleItemChange = (index: number, field: keyof InvoiceItems, value: string | number) => {
-    const newItems = [...items]
-    newItems[index] = { ...newItems[index], [field]: value }
-    
-    if (field === 'quantity' || field === 'unitPrice') {
-      const quantity = parseFloat(newItems[index].quantity) || 0
-      const unitPrice = parseFloat(newItems[index].unitPrice.toString()) || 0
-      newItems[index].totalPrice = quantity * unitPrice
+  const handleItemChange = (
+    index: number,
+    field: keyof InvoiceItems,
+    value: string | number
+  ) => {
+    const newItems = [...items];
+    newItems[index] = { ...newItems[index], [field]: value };
+
+    if (field === "quantity" || field === "unitPrice") {
+      const quantity = parseFloat(newItems[index].quantity) || 0;
+      const unitPrice = parseFloat(newItems[index].unitPrice.toString()) || 0;
+      newItems[index].totalPrice = quantity * unitPrice;
     }
-    
-    setItems(newItems)
-  }
+
+    setItems(newItems);
+  };
 
   const calculateTotals = () => {
-    const totalAmountWithoutGST = items.reduce((sum, item) => sum + item.totalPrice, 0)
-    const gstAmount = (totalAmountWithoutGST * gstPercentage) / 100
-    const totalAmount = totalAmountWithoutGST + gstAmount
+    const totalAmountWithoutGST = items.reduce(
+      (sum, item) => sum + item.totalPrice,
+      0
+    );
+    const gstAmount = (totalAmountWithoutGST * gstPercentage) / 100;
+    const totalAmount = totalAmountWithoutGST + gstAmount;
 
     return {
       totalAmountWithoutGST,
@@ -596,90 +676,145 @@ const BillingScreen = ({ onSave } : BillingScreenProps) => {
         sgstPercentage: gstPercentage / 2,
       },
       totalAmount,
-    }
-  }
+    };
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    const formData = new FormData(e.target as HTMLFormElement)
-    const { totalAmountWithoutGST, gst, totalAmount } = calculateTotals()
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const { totalAmountWithoutGST, gst, totalAmount } = calculateTotals();
 
     const transaction: Transaction = {
       id: `${entryType.toUpperCase()}-${Date.now()}`,
       type: entryType,
-      date: formData.get('date') as string,
-      invoiceNum: formData.get('invoiceNum') as string,
-      partyName: formData.get('partyName') as string,
-      gstinNum: formData.get('gstinNum') as string,
+      date: formData.get("date") as string,
+      invoiceNum: formData.get("invoiceNum") as string,
+      partyName: formData.get("partyName") as string,
+      gstinNum: formData.get("gstinNum") as string,
       items,
       totalAmountWithoutGST,
       gst,
       totalAmount,
-    }
+    };
 
-    onSave(entryType,transaction)
-  }
+    onSave(entryType, transaction);
+  };
 
   return (
     <div className="space-y-4">
       <h2 className="text-xl sm:text-2xl font-semibold">Billing</h2>
       <div className="flex space-x-2 sm:space-x-4">
-        <Button onClick={() => setEntryType('sales')} variant={entryType === 'sales' ? 'default' : 'outline'} className="text-xs sm:text-sm">Sales Entry</Button>
-        <Button onClick={() => setEntryType('purchase')} variant={entryType === 'purchase' ? 'default' : 'outline'} className="text-xs sm:text-sm">Purchase Entry</Button>
+        <Button
+          onClick={() => setEntryType("sales")}
+          variant={entryType === "sales" ? "default" : "outline"}
+          className="text-xs sm:text-sm"
+        >
+          Sales Entry
+        </Button>
+        <Button
+          onClick={() => setEntryType("purchase")}
+          variant={entryType === "purchase" ? "default" : "outline"}
+          className="text-xs sm:text-sm"
+        >
+          Purchase Entry
+        </Button>
       </div>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-2">
-            <Label htmlFor="invoiceNum" className="text-sm">Invoice Number</Label>
-            <Input id="invoiceNum" name="invoiceNum" required className="text-sm" />
+            <Label htmlFor="invoiceNum" className="text-sm">
+              Invoice Number
+            </Label>
+            <Input
+              id="invoiceNum"
+              name="invoiceNum"
+              required
+              className="text-sm"
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="date" className="text-sm">Date</Label>
-            <Input id="date" name="date" type="date" required className="text-sm" />
+            <Label htmlFor="date" className="text-sm">
+              Date
+            </Label>
+            <Input
+              id="date"
+              name="date"
+              type="date"
+              required
+              className="text-sm"
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="partyName" className="text-sm">{entryType === 'sales' ? 'Customer Name' : 'Vendor Name'}</Label>
-            <Input id="partyName" name="partyName" required className="text-sm" />
+            <Label htmlFor="partyName" className="text-sm">
+              {entryType === "sales" ? "Customer Name" : "Vendor Name"}
+            </Label>
+            <Input
+              id="partyName"
+              name="partyName"
+              required
+              className="text-sm"
+            />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="gstinNum" className="text-sm">GSTIN</Label>
+            <Label htmlFor="gstinNum" className="text-sm">
+              GSTIN
+            </Label>
             <Input id="gstinNum" name="gstinNum" required className="text-sm" />
           </div>
         </div>
-        
+
         <div className="space-y-2">
           <Label className="text-sm">Items</Label>
           {items.map((item, index) => (
-            <div key={index} className="flex flex-wrap items-end gap-2 pb-2 border-b">
+            <div
+              key={index}
+              className="flex flex-wrap items-end gap-2 pb-2 border-b"
+            >
               <div className="flex-1 min-w-[200px]">
-                <Label htmlFor={`description-${index}`} className="text-xs">Description</Label>
+                <Label htmlFor={`description-${index}`} className="text-xs">
+                  Description
+                </Label>
                 <Input
                   id={`description-${index}`}
                   value={item.description}
-                  onChange={(e) => handleItemChange(index, 'description', e.target.value)}
+                  onChange={(e) =>
+                    handleItemChange(index, "description", e.target.value)
+                  }
                   className="text-sm"
                   required
                 />
               </div>
               <div className="w-20">
-                <Label htmlFor={`quantity-${index}`} className="text-xs">Quantity</Label>
+                <Label htmlFor={`quantity-${index}`} className="text-xs">
+                  Quantity
+                </Label>
                 <Input
                   id={`quantity-${index}`}
                   type="number"
                   value={item.quantity}
-                  onChange={(e) => handleItemChange(index, 'quantity', e.target.value)}
+                  onChange={(e) =>
+                    handleItemChange(index, "quantity", e.target.value)
+                  }
                   className="text-sm"
                   required
                 />
               </div>
               <div className="w-28">
-                <Label htmlFor={`unitPrice-${index}`} className="text-xs">Unit Price</Label>
+                <Label htmlFor={`unitPrice-${index}`} className="text-xs">
+                  Unit Price
+                </Label>
                 <Input
                   id={`unitPrice-${index}`}
                   type="number"
                   step="0.01"
                   value={item.unitPrice}
-                  onChange={(e) => handleItemChange(index, 'unitPrice', parseFloat(e.target.value))}
+                  onChange={(e) =>
+                    handleItemChange(
+                      index,
+                      "unitPrice",
+                      parseFloat(e.target.value)
+                    )
+                  }
                   className="text-sm"
                   required
                 />
@@ -692,19 +827,36 @@ const BillingScreen = ({ onSave } : BillingScreenProps) => {
                   className="text-sm bg-muted"
                 />
               </div>
-              <Button type="button" variant="destructive" size="icon" onClick={() => handleRemoveItem(index)} disabled={items.length === 1}>
+              <Button
+                type="button"
+                variant="destructive"
+                size="icon"
+                onClick={() => handleRemoveItem(index)}
+                disabled={items.length === 1}
+              >
                 <Trash2 className="h-4 w-4" />
               </Button>
             </div>
           ))}
-          <Button type="button" variant="outline" size="sm" onClick={handleAddItem} className="mt-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleAddItem}
+            className="mt-2"
+          >
             <Plus className="h-4 w-4 mr-2" /> Add Item
           </Button>
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="gstPercentage" className="text-sm">GST Percentage</Label>
-          <Select value={gstPercentage.toString()} onValueChange={(value) => setGstPercentage(parseInt(value))}>
+          <Label htmlFor="gstPercentage" className="text-sm">
+            GST Percentage
+          </Label>
+          <Select
+            value={gstPercentage.toString()}
+            onValueChange={(value) => setGstPercentage(parseInt(value))}
+          >
             <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Select GST %" />
             </SelectTrigger>
@@ -718,17 +870,30 @@ const BillingScreen = ({ onSave } : BillingScreenProps) => {
         </div>
 
         <div className="space-y-2 text-right">
-          <p className="text-sm">Total (without GST): ₹{calculateTotals().totalAmountWithoutGST.toFixed(2)}</p>
-          <p className="text-sm">CGST ({gstPercentage / 2}%): ₹{calculateTotals().gst.cgst.toFixed(2)}</p>
-          <p className="text-sm">SGST ({gstPercentage / 2}%): ₹{calculateTotals().gst.sgst.toFixed(2)}</p>
-          <p className="text-lg font-semibold">Total Amount: ₹{calculateTotals().totalAmount.toFixed(2)}</p>
+          <p className="text-sm">
+            Total (without GST): ₹
+            {calculateTotals().totalAmountWithoutGST.toFixed(2)}
+          </p>
+          <p className="text-sm">
+            CGST ({gstPercentage / 2}%): ₹
+            {calculateTotals().gst.cgst.toFixed(2)}
+          </p>
+          <p className="text-sm">
+            SGST ({gstPercentage / 2}%): ₹
+            {calculateTotals().gst.sgst.toFixed(2)}
+          </p>
+          <p className="text-lg font-semibold">
+            Total Amount: ₹{calculateTotals().totalAmount.toFixed(2)}
+          </p>
         </div>
 
-        <Button type="submit" className="w-full sm:w-auto">Save {entryType.charAt(0).toUpperCase() + entryType.slice(1)} Entry</Button>
+        <Button type="submit" className="w-full sm:w-auto">
+          Save {entryType.charAt(0).toUpperCase() + entryType.slice(1)} Entry
+        </Button>
       </form>
     </div>
-  )
-}
+  );
+};
 
 const AIBotScreen = () => (
   <div className="space-y-4">
@@ -749,7 +914,69 @@ const AIBotScreen = () => (
   </div>
 );
 
-const GSTDashboardScreen = () => (
+const GSTDashboardScreen = () => {
+
+  const [baseAmount, setBaseAmount] = useState<string>('')
+  const [gstRate, setGstRate] = useState<string>('18')
+  const [calculatedGST, setCalculatedGST] = useState<{
+    cgst: number;
+    sgst: number;
+    igst: number;
+    total: number;
+  } | null>(null)
+
+  const pieChartData = [
+    { name: 'CGST', value: 25 },
+    { name: 'SGST', value: 25 },
+    { name: 'IGST', value: 35 },
+    { name: 'Cess', value: 15 },
+  ]
+  
+  const gstComplianceData = [
+    { name: 'GSTR-1', filed: 80 },
+    { name: 'GSTR-3B', filed: 75 },
+    { name: 'GSTR-9', filed: 90 },
+  ]
+
+  const gstTrendData = [
+    { month: 'Jan', gstCollected: 5000, gstPaid: 4500 },
+    { month: 'Feb', gstCollected: 5500, gstPaid: 5000 },
+    { month: 'Mar', gstCollected: 6000, gstPaid: 5500 },
+    { month: 'Apr', gstCollected: 5800, gstPaid: 5300 },
+    { month: 'May', gstCollected: 6200, gstPaid: 5700 },
+    { month: 'Jun', gstCollected: 6500, gstPaid: 6000 },
+  ]
+  
+  const topGSTPayingCustomers = [
+    { name: 'ABC Corp', gstPaid: 15000 },
+    { name: 'XYZ Ltd', gstPaid: 12000 },
+    { name: 'PQR Industries', gstPaid: 10000 },
+    { name: 'LMN Enterprises', gstPaid: 8000 },
+    { name: 'EFG Solutions', gstPaid: 7500 },
+  ]
+  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
+
+  const calculateGST = () => {
+    const amount = parseFloat(baseAmount)
+    const rate = parseFloat(gstRate)
+
+    if (isNaN(amount) || isNaN(rate)) {
+      setCalculatedGST(null)
+      return
+    }
+
+    const totalGST = (amount * rate) / 100
+    const halfGST = totalGST / 2
+
+    setCalculatedGST({
+      cgst: halfGST,
+      sgst: halfGST,
+      igst: totalGST,
+      total: amount + totalGST
+    })
+  }
+ return (
   <div className="space-y-4">
     <h2 className="text-xl sm:text-2xl font-semibold">GST Dashboard</h2>
     <Input placeholder="Search GSTIN" className="text-sm" />
@@ -786,30 +1013,298 @@ const GSTDashboardScreen = () => (
       </Card>
     </div>
     <Card>
-      <CardHeader>
-        <CardTitle className="text-base sm:text-lg">GST Calculator</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-2">
-          <Input placeholder="Enter amount" type="number" className="text-sm" />
-          <Select>
-            <SelectTrigger className="text-sm">
-              <SelectValue placeholder="GST Rate" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5%</SelectItem>
-              <SelectItem value="12">12%</SelectItem>
-              <SelectItem value="18">18%</SelectItem>
-              <SelectItem value="28">28%</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button className="text-xs sm:text-sm">Calculate</Button>
-        </div>
-        {/* Result would be displayed here */}
-      </CardContent>
-    </Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total GST Collected</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹45,231.89</div>
+            <p className="text-xs text-muted-foreground">
+              <ArrowUpIcon className="inline mr-1" />
+              20.1% from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Input Tax Credit</CardTitle>
+            <CreditCard className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">₹12,234.50</div>
+            <p className="text-xs text-muted-foreground">
+              <ArrowUpIcon className="inline mr-1" />
+              4.3% from last month
+            </p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Pending Returns</CardTitle>
+            <FileText className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">2</div>
+            <p className="text-xs text-muted-foreground">GSTR-1 and GSTR-3B</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Next Due Date</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">11 Jun</div>
+            <p className="text-xs text-muted-foreground">GSTR-1 for May</p>
+          </CardContent>
+        </Card>
+        <div className="grid gap-4 md:grid-cols-2">
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>GST Breakdown</CardTitle>
+            <CardDescription>Current month's GST composition</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <RePieChart>
+                <Pie
+                  data={pieChartData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {pieChartData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </RePieChart>
+            </ResponsiveContainer>
+            <div className="mt-4 grid grid-cols-2 gap-4">
+              {pieChartData.map((entry, index) => (
+                <div key={entry.name} className="flex items-center">
+                  <div className={`w-3 h-3 rounded-full mr-2`} style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                  <span className="text-sm">{entry.name}: {entry.value}%</span>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="col-span-1">
+          <CardHeader>
+            <CardTitle>GST Compliance Status</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarCharts data={gstComplianceData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="name" />
+                <YAxis />
+                <Tooltip />
+                <Bar dataKey="filed" fill="#8884d8" />
+              </BarCharts>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+      </div>  
+      <Card>
+        <CardHeader>
+          <CardTitle>GST Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="returns">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="returns">Returns</TabsTrigger>
+              <TabsTrigger value="itc">ITC</TabsTrigger>
+              <TabsTrigger value="compliance">Compliance</TabsTrigger>
+            </TabsList>
+            <TabsContent value="returns" className="space-y-4">
+              <div className="flex items-center">
+                <span className="font-medium">Next GSTR-1 due on 11th of next month</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Ensure all your sales invoices for the current month are recorded to file GSTR-1 on time.</p>
+            </TabsContent>
+            <TabsContent value="itc" className="space-y-4">
+              <div className="flex items-center">
+                <TrendingUp className="mr-2 h-4 w-4 text-green-500" />
+                <span className="font-medium">ITC utilization improved by 5.2%</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Your business is efficiently utilizing available input tax credits, reducing overall GST liability.</p>
+            </TabsContent>
+            <TabsContent value="compliance" className="space-y-4">
+              <div className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                <span className="font-medium">All GST returns filed on time for the last 6 months</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Maintaining timely compliance helps avoid penalties and keeps your business in good standing with tax authorities.</p>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card> 
+      <Card>
+        <CardHeader>
+          <CardTitle>GST Collection vs Payment Trend</CardTitle>
+          <CardDescription>6-month overview of GST collected and paid</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={gstTrendData}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="month" />
+              <YAxis />
+              <Tooltip />
+              <Line type="monotone" dataKey="gstCollected" stroke="#8884d8" name="GST Collected" />
+              <Line type="monotone" dataKey="gstPaid" stroke="#82ca9d" name="GST Paid" />
+            </LineChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Top GST Paying Customers</CardTitle>
+          <CardDescription>Customers contributing the most to your GST collection</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Customer Name</TableHead>
+                <TableHead className="text-right">GST Paid (₹)</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {topGSTPayingCustomers.map((customer, index) => (
+                <TableRow key={index}>
+                  <TableCell>{customer.name}</TableCell>
+                  <TableCell className="text-right">{customer.gstPaid.toFixed(2)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle>GST Insights and Recommendations</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="insights">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="insights">Insights</TabsTrigger>
+              <TabsTrigger value="recommendations">Recommendations</TabsTrigger>
+            </TabsList>
+            <TabsContent value="insights" className="space-y-4">
+              <div className="flex items-center">
+                <TrendingUp className="mr-2 h-4 w-4 text-green-500" />
+                <span className="font-medium">GST collection increased by 8% this quarter</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Your business has shown consistent growth in GST collection, indicating improved sales performance.</p>
+              <div className="flex items-center">
+                <AlertTriangle className="mr-2 h-4 w-4 text-yellow-500" />
+                <span className="font-medium">20% of your customers are contributing to 80% of your GST collection</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Consider diversifying your customer base to reduce dependency on a small group of high-value customers.</p>
+            </TabsContent>
+            <TabsContent value="recommendations" className="space-y-4">
+              <div className="flex items-center">
+                <CheckCircle className="mr-2 h-4 w-4 text-green-500" />
+                <span className="font-medium">Optimize your Input Tax Credit utilization</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Review your purchases and ensure you're claiming all eligible ITCs to reduce your overall GST liability.</p>
+              <div className="flex items-center">
+                <BarChart2 className="mr-2 h-4 w-4 text-blue-500" />
+                <span className="font-medium">Consider GST rate changes for certain products</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Analyze your product mix an
+d consider adjusting prices or exploring different GST rate categories to optimize your tax structure.</p>
+            </TabsContent>
+          </Tabs>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>GST Resources and Tools</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2">
+            <Button variant="outline" className="justify-start">
+              <Download className="mr-2 h-4 w-4" />
+              Download GST Return Templates
+            </Button>
+            <Button variant="outline" className="justify-start">
+              <FileText className="mr-2 h-4 w-4" />
+              GST Compliance Checklist
+            </Button>
+            <Button variant="outline" className="justify-start">
+              <Calculator className="mr-2 h-4 w-4" />
+              HSN Code Finder
+            </Button>
+            <Button variant="outline" className="justify-start">
+              <CalendarCheck className="mr-2 h-4 w-4" />
+              GST Filing Calendar
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+    <Card>
+        <CardHeader>
+          <CardTitle>GST Calculator</CardTitle>
+          <CardDescription>Calculate GST for your transactions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="baseAmount">Base Amount (₹)</Label>
+              <Input
+                id="baseAmount"
+                placeholder="Enter base amount"
+                value={baseAmount}
+                onChange={(e) => setBaseAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gstRate">GST Rate (%)</Label>
+              <Select value={gstRate} onValueChange={setGstRate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select GST rate" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5%</SelectItem>
+                  <SelectItem value="12">12%</SelectItem>
+                  <SelectItem value="18">18%</SelectItem>
+                  <SelectItem value="28">28%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button onClick={calculateGST} className="w-full">
+                <Calculator className="w-4 h-4 mr-2" />
+                Calculate GST
+              </Button>
+            </div>
+          </div>
+          {calculatedGST && (
+            <div className="mt-4 p-4 bg-muted rounded-md">
+              <h4 className="font-semibold mb-2">GST Calculation Results:</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <p>CGST (${parseFloat(gstRate) / 2}%): ₹{calculatedGST.cgst.toFixed(2)}</p>
+                <p>SGST (${parseFloat(gstRate) / 2}%): ₹{calculatedGST.sgst.toFixed(2)}</p>
+                <p>IGST (${gstRate}%): ₹{calculatedGST.igst.toFixed(2)}</p>
+                <p className="font-semibold">Total Amount: ₹{calculatedGST.total.toFixed(2)}</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
   </div>
-);
+ )
+};
 
 const SettingsScreen = () => (
   <div className="space-y-4">
@@ -886,113 +1381,144 @@ const TransactionList = ({
   );
 };
 
-const CompareInvoicesScreen = ({ transactions } : TransactionForCompare) => {
-  const [compareType, setCompareType] = useState<'inwards' | 'outwards'>('outwards')
-  const [uploadedInvoices, setUploadedInvoices] = useState<Transaction[]>([])
-  const [comparisonResults, setComparisonResults] = useState<{ matched: number; unmatched: number; details: any[] }>({ matched: 0, unmatched: 0, details: [] })
+const CompareInvoicesScreen = ({ transactions }: TransactionForCompare) => {
+  const [compareType, setCompareType] = useState<"inwards" | "outwards">(
+    "outwards"
+  );
+  const [uploadedInvoices, setUploadedInvoices] = useState<Transaction[]>([]);
+  const [comparisonResults, setComparisonResults] = useState<{
+    matched: number;
+    unmatched: number;
+    details: any[];
+  }>({ matched: 0, unmatched: 0, details: [] });
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
+    const file = event.target.files?.[0];
     if (file) {
-      const reader = new FileReader()
+      const reader = new FileReader();
       reader.onload = (e) => {
-        const content = e.target?.result as string
+        const content = e.target?.result as string;
         try {
-          const parsedData = JSON.parse(content) as Transaction[]
-          setUploadedInvoices(parsedData)
-          compareInvoices(parsedData)
+          const parsedData = JSON.parse(content) as Transaction[];
+          setUploadedInvoices(parsedData);
+          compareInvoices(parsedData);
         } catch (error) {
-          console.error("Error parsing JSON:", error)
+          console.error("Error parsing JSON:", error);
           // Handle error (e.g., show a toast notification)
         }
-      }
-      reader.readAsText(file)
+      };
+      reader.readAsText(file);
     }
-  }
+  };
 
   const compareInvoices = (uploadedInvoices: Transaction[]) => {
-    const results = uploadedInvoices.map(uploaded => {
-      const match = transactions.find(t => 
-        t.type === (compareType === 'outwards' ? 'sales' : 'purchase') &&
-        t.gstinNum === uploaded.gstinNum &&
-        t.totalAmount === uploaded.totalAmount &&
-        t.invoiceNum === uploaded.invoiceNum
-      )
+    const results = uploadedInvoices.map((uploaded) => {
+      const match = transactions.find(
+        (t) =>
+          t.type === (compareType === "outwards" ? "sales" : "purchase") &&
+          t.gstinNum === uploaded.gstinNum &&
+          t.totalAmount === uploaded.totalAmount &&
+          t.invoiceNum === uploaded.invoiceNum
+      );
       return {
         uploaded,
         match: !!match,
-      }
-    })
+      };
+    });
 
-    const matched = results.filter(r => r.match).length
-    const unmatched = results.length - matched
+    const matched = results.filter((r) => r.match).length;
+    const unmatched = results.length - matched;
 
     setComparisonResults({
       matched,
       unmatched,
       details: results,
-    })
-  }
+    });
+  };
 
   return (
     <div className="space-y-4">
       <h2 className="text-xl sm:text-2xl font-semibold">Compare Invoices</h2>
       <div className="flex space-x-2 sm:space-x-4">
-        <Button onClick={() => setCompareType('outwards')} variant={compareType === 'outwards' ? 'default' : 'outline'} className="text-xs sm:text-sm">Outwards</Button>
-        <Button onClick={() => setCompareType('inwards')} variant={compareType === 'inwards' ? 'default' : 'outline'} className="text-xs sm:text-sm">Inwards</Button>
+        <Button
+          onClick={() => setCompareType("outwards")}
+          variant={compareType === "outwards" ? "default" : "outline"}
+          className="text-xs sm:text-sm"
+        >
+          Outwards
+        </Button>
+        <Button
+          onClick={() => setCompareType("inwards")}
+          variant={compareType === "inwards" ? "default" : "outline"}
+          className="text-xs sm:text-sm"
+        >
+          Inwards
+        </Button>
       </div>
       <div className="flex items-center space-x-2">
-        <Input type="file" accept=".json" onChange={handleFileUpload} className="text-sm" />
+        <Input
+          type="file"
+          accept=".json"
+          onChange={handleFileUpload}
+          className="text-sm"
+        />
         <Button className="text-xs sm:text-sm">Upload</Button>
       </div>
       {comparisonResults.details.length > 0 && (
         <div className="space-y-4">
-        <div className="flex justify-between">
-          <p className="text-sm">Matched: {comparisonResults.matched}</p>
-          <p className="text-sm">Unmatched: {comparisonResults.unmatched}</p>
-        </div>
-        <div className="overflow-x-auto">
-          <div className="inline-block min-w-full align-middle">
-            <div className="overflow-hidden border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="min-w-[100px]">Invoice ID</TableHead>
-                    <TableHead className="min-w-[120px]">GSTIN</TableHead>
-                    <TableHead className="min-w-[120px]">Total Amount</TableHead>
-                    <TableHead className="min-w-[80px]">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {comparisonResults.details.map((result, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="font-medium">{result.uploaded.invoiceNum}</TableCell>
-                      <TableCell>{result.uploaded.gstinNum}</TableCell>
-                      <TableCell>₹{result.uploaded.totalAmount.toFixed(2)}</TableCell>
-                      <TableCell>
-                        {result.match ? (
-                          <CheckCircle className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <X className="w-5 h-5 text-red-500" />
-                        )}
-                      </TableCell>
+          <div className="flex justify-between">
+            <p className="text-sm">Matched: {comparisonResults.matched}</p>
+            <p className="text-sm">Unmatched: {comparisonResults.unmatched}</p>
+          </div>
+          <div className="overflow-x-auto">
+            <div className="inline-block min-w-full align-middle">
+              <div className="overflow-hidden border rounded-lg">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="min-w-[100px]">
+                        Invoice ID
+                      </TableHead>
+                      <TableHead className="min-w-[120px]">GSTIN</TableHead>
+                      <TableHead className="min-w-[120px]">
+                        Total Amount
+                      </TableHead>
+                      <TableHead className="min-w-[80px]">Status</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {comparisonResults.details.map((result, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">
+                          {result.uploaded.invoiceNum}
+                        </TableCell>
+                        <TableCell>{result.uploaded.gstinNum}</TableCell>
+                        <TableCell>
+                          ₹{result.uploaded.totalAmount.toFixed(2)}
+                        </TableCell>
+                        <TableCell>
+                          {result.match ? (
+                            <CheckCircle className="w-5 h-5 text-green-500" />
+                          ) : (
+                            <X className="w-5 h-5 text-red-500" />
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    
       )}
     </div>
-  )
-}
+  );
+};
 
 const GSTReturnFilingAssistant = () => {
-  const [selectedReturn, setSelectedReturn] = useState("GSTR-1")
-  const [step, setStep] = useState(1)
+  const [selectedReturn, setSelectedReturn] = useState("GSTR-1");
+  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<GstReturnsType>({
     totalTaxableValue: "",
     totalCGST: "",
@@ -1000,26 +1526,26 @@ const GSTReturnFilingAssistant = () => {
     totalIGST: "",
     b2bInvoices: [],
     b2cInvoices: [],
-  })
-  const [reviewData, setReviewData] = useState<GstReturnsType | null>(null)
+  });
+  const [reviewData, setReviewData] = useState<GstReturnsType | null>(null);
 
-  const handleInputChange = (e :any) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+  const handleInputChange = (e: any) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
 
   const handleNext = () => {
     if (step === 2) {
-      setReviewData(formData)
+      setReviewData(formData);
     }
-    setStep(step + 1)
-  }
+    setStep(step + 1);
+  };
 
-  const handlePrevious = () => setStep(step - 1)
+  const handlePrevious = () => setStep(step - 1);
 
   const handleSubmit = () => {
     // Here you would typically send the data to your backend or GST portal
-    console.log("Submitting GSTR-1 data:", formData)
+    console.log("Submitting GSTR-1 data:", formData);
     // Reset the form and show a success message
     setFormData({
       totalTaxableValue: "",
@@ -1028,11 +1554,11 @@ const GSTReturnFilingAssistant = () => {
       totalIGST: "",
       b2bInvoices: [],
       b2cInvoices: [],
-    })
-    setStep(1)
-    setReviewData(null)
-    alert("GSTR-1 submitted successfully!")
-  }
+    });
+    setStep(1);
+    setReviewData(null);
+    alert("GSTR-1 submitted successfully!");
+  };
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -1049,7 +1575,10 @@ const GSTReturnFilingAssistant = () => {
             {step === 1 && (
               <div className="space-y-4">
                 <h3 className="text-lg font-semibold">Step 1: Prepare Data</h3>
-                <p>Ensure all your sales invoices for the period are ready. You'll need to enter the following information:</p>
+                <p>
+                  Ensure all your sales invoices for the period are ready.
+                  You'll need to enter the following information:
+                </p>
                 <ul className="list-disc list-inside space-y-2">
                   <li>Total taxable value of supplies</li>
                   <li>Total CGST, SGST, and IGST collected</li>
@@ -1063,7 +1592,9 @@ const GSTReturnFilingAssistant = () => {
                 <h3 className="text-lg font-semibold">Step 2: Enter Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <Label htmlFor="totalTaxableValue">Total Taxable Value</Label>
+                    <Label htmlFor="totalTaxableValue">
+                      Total Taxable Value
+                    </Label>
                     <Input
                       id="totalTaxableValue"
                       name="totalTaxableValue"
@@ -1111,7 +1642,9 @@ const GSTReturnFilingAssistant = () => {
             )}
             {step === 3 && (
               <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Step 3: Review and Submit</h3>
+                <h3 className="text-lg font-semibold">
+                  Step 3: Review and Submit
+                </h3>
                 <div className="border p-4 rounded-md">
                   <h4 className="font-semibold mb-2">GSTR-1 Summary</h4>
                   <p>Total Taxable Value: ₹{formData.totalTaxableValue}</p>
@@ -1129,65 +1662,83 @@ const GSTReturnFilingAssistant = () => {
           <TabsContent value="GSTR-3B">
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">GSTR-3B Filing</h3>
-              <p>GSTR-3B filing process will be implemented here, similar to GSTR-1.</p>
+              <p>
+                GSTR-3B filing process will be implemented here, similar to
+                GSTR-1.
+              </p>
             </div>
           </TabsContent>
         </Tabs>
       </CardContent>
     </Card>
-  )
-}
+  );
+};
 
-const  ITCManagement =() => {
+const ITCManagement = () => {
   const [itcEntries, setItcEntries] = useState<ITCEntry[]>([
-    { id: "1", description: "Office Supplies", amount: 1000, category: "Goods", date: "2024-03-15", invoiceNumber: "INV-001" },
-    { id: "2", description: "Consulting Services", amount: 5000, category: "Services", date: "2024-03-20", invoiceNumber: "INV-002" },
-  ])
-  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [currentEntry, setCurrentEntry] = useState<ITCEntry | null>(null)
-  const [filter, setFilter] = useState("")
+    {
+      id: "1",
+      description: "Office Supplies",
+      amount: 1000,
+      category: "Goods",
+      date: "2024-03-15",
+      invoiceNumber: "INV-001",
+    },
+    {
+      id: "2",
+      description: "Consulting Services",
+      amount: 5000,
+      category: "Services",
+      date: "2024-03-20",
+      invoiceNumber: "INV-002",
+    },
+  ]);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [currentEntry, setCurrentEntry] = useState<ITCEntry | null>(null);
+  const [filter, setFilter] = useState("");
 
-  const { toast } = useToast()
+  const { toast } = useToast();
 
-  const handleAddEntry = (entry: Omit<ITCEntry, 'id'>) => {
-    const newEntry = { ...entry, id: Date.now().toString() }
-    setItcEntries([...itcEntries, newEntry])
-    setIsAddDialogOpen(false)
+  const handleAddEntry = (entry: Omit<ITCEntry, "id">) => {
+    const newEntry = { ...entry, id: Date.now().toString() };
+    setItcEntries([...itcEntries, newEntry]);
+    setIsAddDialogOpen(false);
     toast({
       title: "ITC Entry Added",
       description: "New ITC entry has been added successfully.",
-    })
-  }
+    });
+  };
 
-  const handleEditEntry = (entry: ITCEntry | Omit<ITCEntry, 'id'>) => {
-    if ('id' in entry) {
+  const handleEditEntry = (entry: ITCEntry | Omit<ITCEntry, "id">) => {
+    if ("id" in entry) {
       // Handle the case when the entry has an id (ITCEntry)
-      setItcEntries(itcEntries.map(e => e.id === entry.id ? entry : e))
-      setIsEditDialogOpen(false)
+      setItcEntries(itcEntries.map((e) => (e.id === entry.id ? entry : e)));
+      setIsEditDialogOpen(false);
       toast({
         title: "ITC Entry Updated",
         description: "ITC entry has been updated successfully.",
-      })
+      });
     } else {
       // Handle the case when the entry doesn't have an id (Omit<ITCEntry, 'id'>)
-      console.error("Entry without an ID cannot be updated.")
+      console.error("Entry without an ID cannot be updated.");
     }
-  }
+  };
 
   const handleDeleteEntry = (id: string) => {
-    setItcEntries(itcEntries.filter(e => e.id !== id))
+    setItcEntries(itcEntries.filter((e) => e.id !== id));
     toast({
       title: "ITC Entry Deleted",
       description: "ITC entry has been deleted successfully.",
-    })
-  }
+    });
+  };
 
-  const filteredEntries = itcEntries.filter(entry =>
-    entry.description.toLowerCase().includes(filter.toLowerCase()) ||
-    entry.category.toLowerCase().includes(filter.toLowerCase()) ||
-    entry.invoiceNumber.toLowerCase().includes(filter.toLowerCase())
-  )
+  const filteredEntries = itcEntries.filter(
+    (entry) =>
+      entry.description.toLowerCase().includes(filter.toLowerCase()) ||
+      entry.category.toLowerCase().includes(filter.toLowerCase()) ||
+      entry.invoiceNumber.toLowerCase().includes(filter.toLowerCase())
+  );
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -1200,7 +1751,9 @@ const  ITCManagement =() => {
       <CardContent>
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-2 sm:space-y-0">
           <div className="flex items-center space-x-2 w-full sm:w-auto">
-            <Label htmlFor="filter" className="sr-only">Filter</Label>
+            <Label htmlFor="filter" className="sr-only">
+              Filter
+            </Label>
             <Input
               id="filter"
               placeholder="Filter entries..."
@@ -1219,7 +1772,7 @@ const  ITCManagement =() => {
             </Button>
           </div>
         </div>
-        
+
         {/* Desktop view */}
         <div className="hidden sm:block">
           <Table>
@@ -1243,13 +1796,21 @@ const  ITCManagement =() => {
                   <TableCell>{entry.invoiceNumber}</TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button variant="ghost" size="sm" onClick={() => {
-                        setCurrentEntry(entry)
-                        setIsEditDialogOpen(true)
-                      }}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentEntry(entry);
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" onClick={() => handleDeleteEntry(entry.id)}>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteEntry(entry.id)}
+                      >
                         <Trash className="w-4 h-4" />
                       </Button>
                     </div>
@@ -1268,22 +1829,38 @@ const  ITCManagement =() => {
                 <AccordionTrigger className="hover:no-underline">
                   <div className="flex justify-between items-center w-full">
                     <span className="font-medium">{entry.description}</span>
-                    <span className="text-sm text-gray-500">₹{entry.amount.toFixed(2)}</span>
+                    <span className="text-sm text-gray-500">
+                      ₹{entry.amount.toFixed(2)}
+                    </span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-2">
-                    <p><strong>Category:</strong> {entry.category}</p>
-                    <p><strong>Date:</strong> {entry.date}</p>
-                    <p><strong>Invoice Number:</strong> {entry.invoiceNumber}</p>
+                    <p>
+                      <strong>Category:</strong> {entry.category}
+                    </p>
+                    <p>
+                      <strong>Date:</strong> {entry.date}
+                    </p>
+                    <p>
+                      <strong>Invoice Number:</strong> {entry.invoiceNumber}
+                    </p>
                     <div className="flex space-x-2 mt-2">
-                      <Button variant="outline" size="sm" onClick={() => {
-                        setCurrentEntry(entry)
-                        setIsEditDialogOpen(true)
-                      }}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setCurrentEntry(entry);
+                          setIsEditDialogOpen(true);
+                        }}
+                      >
                         <Edit className="w-4 h-4 mr-2" /> Edit
                       </Button>
-                      <Button variant="outline" size="sm" onClick={() => handleDeleteEntry(entry.id)}>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDeleteEntry(entry.id)}
+                      >
                         <Trash className="w-4 h-4 mr-2" /> Delete
                       </Button>
                     </div>
@@ -1310,30 +1887,37 @@ const  ITCManagement =() => {
         initialData={currentEntry}
       />
     </Card>
-  )
-}
+  );
+};
 
-
-
-function ITCEntryDialog({ isOpen, onClose, onSave, title, initialData }: ITCEntryDialogProps) {
-  const [formData, setFormData] = useState<Omit<ITCEntry, 'id'>>({
-    description: initialData?.description || '',
+function ITCEntryDialog({
+  isOpen,
+  onClose,
+  onSave,
+  title,
+  initialData,
+}: ITCEntryDialogProps) {
+  const [formData, setFormData] = useState<Omit<ITCEntry, "id">>({
+    description: initialData?.description || "",
     amount: initialData?.amount || 0,
-    category: initialData?.category || '',
-    date: initialData?.date || '',
-    invoiceNumber: initialData?.invoiceNumber || '',
-  })
+    category: initialData?.category || "",
+    date: initialData?.date || "",
+    invoiceNumber: initialData?.invoiceNumber || "",
+  });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: name === 'amount' ? parseFloat(value) : value }))
-  }
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: name === "amount" ? parseFloat(value) : value,
+    }));
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    onSave(initialData ? { ...formData, id: initialData.id } : formData)
-    onClose()
-  }
+    e.preventDefault();
+    onSave(initialData ? { ...formData, id: initialData.id } : formData);
+    onClose();
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -1365,7 +1949,13 @@ function ITCEntryDialog({ isOpen, onClose, onSave, title, initialData }: ITCEntr
           </div>
           <div>
             <Label htmlFor="category">Category</Label>
-            <Select name="category" value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+            <Select
+              name="category"
+              value={formData.category}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, category: value }))
+              }
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Select category" />
               </SelectTrigger>
@@ -1398,22 +1988,24 @@ function ITCEntryDialog({ isOpen, onClose, onSave, title, initialData }: ITCEntr
             />
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
             <Button type="submit">Save</Button>
           </DialogFooter>
         </form>
       </DialogContent>
     </Dialog>
-  )
+  );
 }
 
 const HSNSACLookup = () => {
-  const [searchTerm, setSearchTerm] = useState("")
-  const [results, setResults] = useState([])
+  const [searchTerm, setSearchTerm] = useState("");
+  const [results, setResults] = useState([]);
 
   const handleSearch = () => {
     // Implement HSN/SAC code search logic
-  }
+  };
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
@@ -1432,11 +2024,8 @@ const HSNSACLookup = () => {
         {/* Display search results */}
       </CardContent>
     </Card>
-  )
-}
-
-
-
+  );
+};
 
 export default function EnhancedFinancialApp() {
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -1453,7 +2042,7 @@ export default function EnhancedFinancialApp() {
     { title: "Billing", icon: FileText },
     { title: "Sales", icon: Weight },
     { title: "Purchases", icon: ShoppingCart },
-    { title: 'Compare Invoices', icon: GitCompareArrows },
+    { title: "Compare Invoices", icon: GitCompareArrows },
     { title: "GST Returns", icon: FileCheck },
     { title: "ITC Management", icon: CreditCard },
     { title: "HSN/SAC Lookup", icon: Search },
@@ -1523,22 +2112,26 @@ export default function EnhancedFinancialApp() {
             onViewInvoice={handleViewInvoice}
           />
         );
-        case 'Compare Invoices':
-          return <CompareInvoicesScreen transactions={transactions} />  
-        case "GST Returns":
-          return <GSTReturnFilingAssistant />
-        case "ITC Management":
-          return <ITCManagement />
-        case "HSN/SAC Lookup":
-          return <HSNSACLookup />  
-          
+      case "Compare Invoices":
+        return <CompareInvoicesScreen transactions={transactions} />;
+      case "GST Returns":
+        return <GSTReturnFilingAssistant />;
+      case "ITC Management":
+        return <ITCManagement />;
+      case "HSN/SAC Lookup":
+        return <HSNSACLookup />;
+
       default:
         return null;
     }
   };
 
   return (
-    <div className={`min-h-screen bg-background text-foreground ${darkMode ? "dark" : ""}`}>
+    <div
+      className={`min-h-screen bg-background text-foreground ${
+        darkMode ? "dark" : ""
+      }`}
+    >
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <aside
@@ -1558,9 +2151,7 @@ export default function EnhancedFinancialApp() {
                     <AvatarImage src="https://github.com/shadcn.png" />
                     <AvatarFallback>CN</AvatarFallback>
                   </Avatar>
-                  <h1 className="text-xl md:text-2xl font-bold ml-2">
-                    FinApp
-                  </h1>
+                  <h1 className="text-xl md:text-2xl font-bold ml-2">FinApp</h1>
                 </div>
               </div>
             </div>
@@ -1572,7 +2163,9 @@ export default function EnhancedFinancialApp() {
                       key={item.title}
                       variant="ghost"
                       className={`w-full justify-start ${
-                        activeItem === item.title ? "bg-primary/10 text-primary" : ""
+                        activeItem === item.title
+                          ? "bg-primary/10 text-primary"
+                          : ""
                       }`}
                       onClick={() => handleNavigation(item.title)}
                     >
@@ -1587,7 +2180,9 @@ export default function EnhancedFinancialApp() {
               <Button
                 variant="ghost"
                 className="w-full justify-start"
-                onClick={() => {/* Handle logout */}}
+                onClick={() => {
+                  /* Handle logout */
+                }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
                 Logout
@@ -1667,7 +2262,11 @@ export default function EnhancedFinancialApp() {
                       </div>
 
                       <div className="text-right">
-                        <p className="text-sm font-semibold">{selectedInvoice.type === "sales" ? "Customer GSTIN" : "Vendor GSTIN"} </p>
+                        <p className="text-sm font-semibold">
+                          {selectedInvoice.type === "sales"
+                            ? "Customer GSTIN"
+                            : "Vendor GSTIN"}{" "}
+                        </p>
                         <p className="text-sm font-bold">
                           {selectedInvoice.gstinNum}
                         </p>
