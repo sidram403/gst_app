@@ -38,10 +38,13 @@ import {
   Truck,
   Trash,
   Edit,
-  Filter
+  Filter,
+  ArrowRightIcon,
+  TrendingDown,
+  ArrowUpIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -82,6 +85,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart as RePieChart, Pie, Cell } from 'recharts'
 
 type InvoiceItems = {
   description: string;
@@ -198,22 +203,38 @@ const MicroserviceIcon = ({ icon: Icon, title }: MicroserviceIconProps) => (
 );
 
 const InvoiceItem = ({ transaction, onView }: InvoiceItemProps) => (
-  <div className="flex justify-between items-center py-2 border-b last:border-b-0">
-    <div>
-      <Badge variant={transaction.type === "sales" ? "default" : "secondary"}>
-        {transaction.type}
-      </Badge>
-      <p className="text-xs mt-1">{transaction.date}</p>
-    </div>
-    <div className="flex items-center">
-      <span className="text-sm font-semibold mr-2">
-        ₹{transaction.totalAmount.toFixed(2)}
-      </span>
-      <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
-        <FileText className="h-4 w-4" />
-      </Button>
-    </div>
-  </div>
+  // <div className="flex justify-between items-center py-2 border-b last:border-b-0">
+  //   <div>
+  //     <Badge variant={transaction.type === "sales" ? "default" : "secondary"}>
+  //       {transaction.type}
+  //     </Badge>
+  //     <p className="text-xs mt-1">{transaction.date}</p>
+  //   </div>
+  //   <div className="flex items-center">
+  //     <span className="text-sm font-semibold mr-2">
+  //       ₹{transaction.totalAmount.toFixed(2)}
+  //     </span>
+  //     <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
+  //       <FileText className="h-4 w-4" />
+  //     </Button>
+  //   </div>
+    
+  // </div>
+  <div key={transaction.id} className="flex items-center mb-4 last:mb-0">
+                 <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
+     <Eye className="h-4 w-4" />
+    </Button>
+                <div className="ml-4 space-y-1">
+                  <p className="text-sm font-medium leading-none">{transaction.partyName}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {transaction.type === 'sales' ? 'Invoice' : 'Bill'} #{transaction.invoiceNum}
+                  </p>
+                </div>
+                <div className="ml-auto font-medium">
+                  {transaction.type === 'sales' ? '+' : '-'}₹{transaction.totalAmount.toFixed(2)}
+                </div>
+               
+              </div>
 );
 
 const InvoiceCreatedItem = ({
@@ -318,6 +339,23 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
     { icon: FileSpreadsheet, title: "Expense Tracker" },
     { icon: BookOpen, title: "Compliance Guide" },
   ];
+  const areaChartData = [
+    { name: 'Jan', Sales: 4000, Purchases: 2400 },
+    { name: 'Feb', Sales: 3000, Purchases: 1398 },
+    { name: 'Mar', Sales: 2000, Purchases: 9800 },
+    { name: 'Apr', Sales: 2780, Purchases: 3908 },
+    { name: 'May', Sales: 1890, Purchases: 4800 },
+    { name: 'Jun', Sales: 2390, Purchases: 3800 },
+  ]
+  
+  const pieChartData = [
+    { name: 'CGST', value: 25 },
+    { name: 'SGST', value: 25 },
+    { name: 'IGST', value: 35 },
+    { name: 'Cess', value: 15 },
+  ]
+  
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
 
   return (
     <div className="space-y-4">
@@ -377,7 +415,57 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
           />
         ))}
       </div>
-      <Card>
+      <Card className="col-span-full">
+        <CardHeader>
+          <CardTitle>Overview</CardTitle>
+        </CardHeader>
+        <CardContent className="pl-2">
+          <ResponsiveContainer width="100%" height={300}>
+            <AreaChart data={areaChartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#8884d8" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorPurchases" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8}/>
+                  <stop offset="95%" stopColor="#82ca9d" stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+              <XAxis dataKey="name" />
+              <YAxis />
+              <CartesianGrid strokeDasharray="3 3" />
+              <Tooltip />
+              <Area type="monotone" dataKey="Sales" stroke="#8884d8" fillOpacity={1} fill="url(#colorSales)" />
+              <Area type="monotone" dataKey="Purchases" stroke="#82ca9d" fillOpacity={1} fill="url(#colorPurchases)" />
+            </AreaChart>
+          </ResponsiveContainer>
+        </CardContent>
+      </Card>
+      <Card className="col-span-full md:col-span-2">
+        <CardHeader>
+          <CardTitle>Recent Transactions</CardTitle>
+          <CardDescription>You have {transactions.length} total transactions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ScrollArea className="h-[300px]">
+            {transactions.slice(0, 5).map((transaction:any) => (
+              <InvoiceItem
+              key={transaction.id}
+              transaction={transaction}
+              onView={onViewInvoice}
+            />
+            ))}
+          </ScrollArea>
+        </CardContent>
+        <CardFooter>
+          <Button variant="outline" className="w-full">
+            <ArrowRightIcon className="mr-2 h-4 w-4" />
+            View All Transactions
+          </Button>
+        </CardFooter>
+      </Card>
+      {/* <Card>
         <CardHeader>
           <CardTitle className="text-base sm:text-lg">
             Recent Transactions
@@ -394,7 +482,76 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
             ))}
           </ScrollArea>
         </CardContent>
+      </Card> */}
+      <Card className="col-span-full md:col-span-2">
+        <CardHeader>
+          <CardTitle>Tax Breakdown</CardTitle>
+          <CardDescription>Current month's tax liability</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResponsiveContainer width="100%" height={300}>
+            <RePieChart>
+              <Pie
+                data={pieChartData}
+                cx="50%"
+                cy="50%"
+                labelLine={false}
+                outerRadius={80}
+                fill="#8884d8"
+                dataKey="value"
+              >
+                {pieChartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                ))}
+              </Pie>
+              <Tooltip />
+            </RePieChart>
+          </ResponsiveContainer>
+          <div className="mt-4 grid grid-cols-2 gap-4">
+            {pieChartData.map((entry, index) => (
+              <div key={entry.name} className="flex items-center">
+                <div className={`w-3 h-3 rounded-full mr-2`} style={{ backgroundColor: COLORS[index % COLORS.length] }}></div>
+                <span className="text-sm">{entry.name}: {entry.value}%</span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
       </Card>
+      <Card className="col-span-full">
+        <CardHeader>
+          <CardTitle>Financial Insights</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="cashflow">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="cashflow">Cash Flow</TabsTrigger>
+              <TabsTrigger value="profitability">Profitability</TabsTrigger>
+              <TabsTrigger value="efficiency">Efficiency</TabsTrigger>
+            </TabsList>
+            <TabsContent value="cashflow" className="space-y-4">
+              <div className="flex items-center">
+                <ArrowUpIcon className="mr-2 h-4 w-4 text-green-500" />
+                <span className="font-medium text-green-500">8.2% increase in operating cash flow</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Your business generated more cash from its core operations this month compared to last month.</p>
+            </TabsContent>
+            <TabsContent value="profitability" className="space-y-4">
+              <div className="flex items-center">
+                <TrendingUp className="mr-2 h-4 w-4 text-green-500" />
+                <span className="font-medium text-green-500">Gross profit margin improved by 3.5%</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Your business is becoming more efficient at producing goods or services, resulting in higher profitability.</p>
+            </TabsContent>
+            <TabsContent value="efficiency" className="space-y-4">
+              <div className="flex items-center">
+                <TrendingDown className="mr-2 h-4 w-4 text-red-500" />
+                <span className="font-medium text-red-500">Inventory turnover decreased by 2.1 days</span>
+              </div>
+              <p className="text-sm text-muted-foreground">Your business is taking slightly longer to sell through its inventory. Consider reviewing your inventory management practices.</p>
+            </TabsContent>
+            </Tabs>
+          </CardContent>
+        </Card>
     </div>
   );
 };
