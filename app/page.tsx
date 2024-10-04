@@ -32,7 +32,13 @@ import {
   Check,
   X,
   Trash2,
-  Plus
+  Plus,
+  FileCheck,
+  CreditCard,
+  Truck,
+  Trash,
+  Edit,
+  Filter
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -51,6 +57,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogFooter
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -67,6 +74,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Calendar } from "@/components/ui/calendar"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
 type InvoiceItems = {
   description: string;
@@ -139,6 +154,40 @@ interface TransactionListProps {
 
 interface TransactionForCompare {
   transactions: TransactionProps[]
+}
+
+type GstReturnsType = {
+  totalTaxableValue: string
+  totalCGST: string
+  totalSGST: string
+  totalIGST: string
+  b2bInvoices: string[]
+  b2cInvoices: string[]
+}
+
+type ITCEntry = {
+  id: string
+  description: string
+  amount: number
+  category: string
+  date: string
+  invoiceNumber: string
+}
+
+type ITCEntryDialogProps = {
+  isOpen: boolean
+  onClose: () => void
+  onSave: (entry: ITCEntry | Omit<ITCEntry, 'id'>) => void
+  title: string
+  initialData?: ITCEntry | null
+}
+
+type ComplianceEvent = {
+  id: string
+  date: Date
+  title: string
+  type: 'filing' | 'payment' | 'other'
+  description: string
 }
 
 const MicroserviceIcon = ({ icon: Icon, title }: MicroserviceIconProps) => (
@@ -784,6 +833,454 @@ const CompareInvoicesScreen = ({ transactions } : TransactionForCompare) => {
   )
 }
 
+const GSTReturnFilingAssistant = () => {
+  const [selectedReturn, setSelectedReturn] = useState("GSTR-1")
+  const [step, setStep] = useState(1)
+  const [formData, setFormData] = useState<GstReturnsType>({
+    totalTaxableValue: "",
+    totalCGST: "",
+    totalSGST: "",
+    totalIGST: "",
+    b2bInvoices: [],
+    b2cInvoices: [],
+  })
+  const [reviewData, setReviewData] = useState<GstReturnsType | null>(null)
+
+  const handleInputChange = (e :any) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  const handleNext = () => {
+    if (step === 2) {
+      setReviewData(formData)
+    }
+    setStep(step + 1)
+  }
+
+  const handlePrevious = () => setStep(step - 1)
+
+  const handleSubmit = () => {
+    // Here you would typically send the data to your backend or GST portal
+    console.log("Submitting GSTR-1 data:", formData)
+    // Reset the form and show a success message
+    setFormData({
+      totalTaxableValue: "",
+      totalCGST: "",
+      totalSGST: "",
+      totalIGST: "",
+      b2bInvoices: [],
+      b2cInvoices: [],
+    })
+    setStep(1)
+    setReviewData(null)
+    alert("GSTR-1 submitted successfully!")
+  }
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle>GST Return Filing Assistant</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <Tabs value={selectedReturn} onValueChange={setSelectedReturn}>
+          <TabsList>
+            <TabsTrigger value="GSTR-1">GSTR-1</TabsTrigger>
+            <TabsTrigger value="GSTR-3B">GSTR-3B</TabsTrigger>
+          </TabsList>
+          <TabsContent value="GSTR-1">
+            {step === 1 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Step 1: Prepare Data</h3>
+                <p>Ensure all your sales invoices for the period are ready. You'll need to enter the following information:</p>
+                <ul className="list-disc list-inside space-y-2">
+                  <li>Total taxable value of supplies</li>
+                  <li>Total CGST, SGST, and IGST collected</li>
+                  <li>Details of B2B and B2C invoices</li>
+                </ul>
+                <Button onClick={handleNext}>Next</Button>
+              </div>
+            )}
+            {step === 2 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Step 2: Enter Details</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="totalTaxableValue">Total Taxable Value</Label>
+                    <Input
+                      id="totalTaxableValue"
+                      name="totalTaxableValue"
+                      value={formData.totalTaxableValue}
+                      onChange={handleInputChange}
+                      placeholder="Enter total taxable value"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="totalCGST">Total CGST</Label>
+                    <Input
+                      id="totalCGST"
+                      name="totalCGST"
+                      value={formData.totalCGST}
+                      onChange={handleInputChange}
+                      placeholder="Enter total CGST"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="totalSGST">Total SGST</Label>
+                    <Input
+                      id="totalSGST"
+                      name="totalSGST"
+                      value={formData.totalSGST}
+                      onChange={handleInputChange}
+                      placeholder="Enter total SGST"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="totalIGST">Total IGST</Label>
+                    <Input
+                      id="totalIGST"
+                      name="totalIGST"
+                      value={formData.totalIGST}
+                      onChange={handleInputChange}
+                      placeholder="Enter total IGST"
+                    />
+                  </div>
+                </div>
+                <div className="flex justify-between">
+                  <Button onClick={handlePrevious}>Previous</Button>
+                  <Button onClick={handleNext}>Next</Button>
+                </div>
+              </div>
+            )}
+            {step === 3 && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-semibold">Step 3: Review and Submit</h3>
+                <div className="border p-4 rounded-md">
+                  <h4 className="font-semibold mb-2">GSTR-1 Summary</h4>
+                  <p>Total Taxable Value: ₹{formData.totalTaxableValue}</p>
+                  <p>Total CGST: ₹{formData.totalCGST}</p>
+                  <p>Total SGST: ₹{formData.totalSGST}</p>
+                  <p>Total IGST: ₹{formData.totalIGST}</p>
+                </div>
+                <div className="flex justify-between">
+                  <Button onClick={handlePrevious}>Previous</Button>
+                  <Button onClick={handleSubmit}>Submit GSTR-1</Button>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+          <TabsContent value="GSTR-3B">
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">GSTR-3B Filing</h3>
+              <p>GSTR-3B filing process will be implemented here, similar to GSTR-1.</p>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+    </Card>
+  )
+}
+
+const  ITCManagement =() => {
+  const [itcEntries, setItcEntries] = useState<ITCEntry[]>([
+    { id: "1", description: "Office Supplies", amount: 1000, category: "Goods", date: "2024-03-15", invoiceNumber: "INV-001" },
+    { id: "2", description: "Consulting Services", amount: 5000, category: "Services", date: "2024-03-20", invoiceNumber: "INV-002" },
+  ])
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [currentEntry, setCurrentEntry] = useState<ITCEntry | null>(null)
+  const [filter, setFilter] = useState("")
+
+  const { toast } = useToast()
+
+  const handleAddEntry = (entry: Omit<ITCEntry, 'id'>) => {
+    const newEntry = { ...entry, id: Date.now().toString() }
+    setItcEntries([...itcEntries, newEntry])
+    setIsAddDialogOpen(false)
+    toast({
+      title: "ITC Entry Added",
+      description: "New ITC entry has been added successfully.",
+    })
+  }
+
+  const handleEditEntry = (entry: ITCEntry | Omit<ITCEntry, 'id'>) => {
+    if ('id' in entry) {
+      // Handle the case when the entry has an id (ITCEntry)
+      setItcEntries(itcEntries.map(e => e.id === entry.id ? entry : e))
+      setIsEditDialogOpen(false)
+      toast({
+        title: "ITC Entry Updated",
+        description: "ITC entry has been updated successfully.",
+      })
+    } else {
+      // Handle the case when the entry doesn't have an id (Omit<ITCEntry, 'id'>)
+      console.error("Entry without an ID cannot be updated.")
+    }
+  }
+
+  const handleDeleteEntry = (id: string) => {
+    setItcEntries(itcEntries.filter(e => e.id !== id))
+    toast({
+      title: "ITC Entry Deleted",
+      description: "ITC entry has been deleted successfully.",
+    })
+  }
+
+  const filteredEntries = itcEntries.filter(entry =>
+    entry.description.toLowerCase().includes(filter.toLowerCase()) ||
+    entry.category.toLowerCase().includes(filter.toLowerCase()) ||
+    entry.invoiceNumber.toLowerCase().includes(filter.toLowerCase())
+  )
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader className="flex flex-col sm:flex-row items-start sm:items-center justify-between space-y-2 sm:space-y-0">
+        <CardTitle>Input Tax Credit Management</CardTitle>
+        <Button onClick={() => setIsAddDialogOpen(true)}>
+          <Plus className="w-4 h-4 mr-2" /> Add ITC Entry
+        </Button>
+      </CardHeader>
+      <CardContent>
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 space-y-2 sm:space-y-0">
+          <div className="flex items-center space-x-2 w-full sm:w-auto">
+            <Label htmlFor="filter" className="sr-only">Filter</Label>
+            <Input
+              id="filter"
+              placeholder="Filter entries..."
+              value={filter}
+              onChange={(e) => setFilter(e.target.value)}
+              className="w-full sm:w-[250px]"
+            />
+            <Filter className="w-4 h-4 text-gray-400" />
+          </div>
+          <div className="flex space-x-2 w-full sm:w-auto">
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Upload className="w-4 h-4 mr-2" /> Import
+            </Button>
+            <Button variant="outline" size="sm" className="flex-1 sm:flex-none">
+              <Download className="w-4 h-4 mr-2" /> Export
+            </Button>
+          </div>
+        </div>
+        
+        {/* Desktop view */}
+        <div className="hidden sm:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Description</TableHead>
+                <TableHead>Amount</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Invoice Number</TableHead>
+                <TableHead>Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredEntries.map((entry) => (
+                <TableRow key={entry.id}>
+                  <TableCell>{entry.description}</TableCell>
+                  <TableCell>₹{entry.amount.toFixed(2)}</TableCell>
+                  <TableCell>{entry.category}</TableCell>
+                  <TableCell>{entry.date}</TableCell>
+                  <TableCell>{entry.invoiceNumber}</TableCell>
+                  <TableCell>
+                    <div className="flex space-x-2">
+                      <Button variant="ghost" size="sm" onClick={() => {
+                        setCurrentEntry(entry)
+                        setIsEditDialogOpen(true)
+                      }}>
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" onClick={() => handleDeleteEntry(entry.id)}>
+                        <Trash className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile view */}
+        <div className="sm:hidden">
+          <Accordion type="single" collapsible className="w-full">
+            {filteredEntries.map((entry) => (
+              <AccordionItem value={entry.id} key={entry.id}>
+                <AccordionTrigger className="hover:no-underline">
+                  <div className="flex justify-between items-center w-full">
+                    <span className="font-medium">{entry.description}</span>
+                    <span className="text-sm text-gray-500">₹{entry.amount.toFixed(2)}</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-2">
+                    <p><strong>Category:</strong> {entry.category}</p>
+                    <p><strong>Date:</strong> {entry.date}</p>
+                    <p><strong>Invoice Number:</strong> {entry.invoiceNumber}</p>
+                    <div className="flex space-x-2 mt-2">
+                      <Button variant="outline" size="sm" onClick={() => {
+                        setCurrentEntry(entry)
+                        setIsEditDialogOpen(true)
+                      }}>
+                        <Edit className="w-4 h-4 mr-2" /> Edit
+                      </Button>
+                      <Button variant="outline" size="sm" onClick={() => handleDeleteEntry(entry.id)}>
+                        <Trash className="w-4 h-4 mr-2" /> Delete
+                      </Button>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+      </CardContent>
+
+      <ITCEntryDialog
+        isOpen={isAddDialogOpen}
+        onClose={() => setIsAddDialogOpen(false)}
+        onSave={handleAddEntry}
+        title="Add ITC Entry"
+      />
+
+      <ITCEntryDialog
+        isOpen={isEditDialogOpen}
+        onClose={() => setIsEditDialogOpen(false)}
+        onSave={handleEditEntry}
+        title="Edit ITC Entry"
+        initialData={currentEntry}
+      />
+    </Card>
+  )
+}
+
+
+
+function ITCEntryDialog({ isOpen, onClose, onSave, title, initialData }: ITCEntryDialogProps) {
+  const [formData, setFormData] = useState<Omit<ITCEntry, 'id'>>({
+    description: initialData?.description || '',
+    amount: initialData?.amount || 0,
+    category: initialData?.category || '',
+    date: initialData?.date || '',
+    invoiceNumber: initialData?.invoiceNumber || '',
+  })
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: name === 'amount' ? parseFloat(value) : value }))
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    onSave(initialData ? { ...formData, id: initialData.id } : formData)
+    onClose()
+  }
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>{title}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <Label htmlFor="description">Description</Label>
+            <Input
+              id="description"
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="amount">Amount</Label>
+            <Input
+              id="amount"
+              name="amount"
+              type="number"
+              value={formData.amount}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Select name="category" value={formData.category} onValueChange={(value) => setFormData(prev => ({ ...prev, category: value }))}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select category" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Goods">Goods</SelectItem>
+                <SelectItem value="Services">Services</SelectItem>
+                <SelectItem value="Capital Goods">Capital Goods</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <Label htmlFor="date">Date</Label>
+            <Input
+              id="date"
+              name="date"
+              type="date"
+              value={formData.date}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <div>
+            <Label htmlFor="invoiceNumber">Invoice Number</Label>
+            <Input
+              id="invoiceNumber"
+              name="invoiceNumber"
+              value={formData.invoiceNumber}
+              onChange={handleChange}
+              required
+            />
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">Save</Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+const HSNSACLookup = () => {
+  const [searchTerm, setSearchTerm] = useState("")
+  const [results, setResults] = useState([])
+
+  const handleSearch = () => {
+    // Implement HSN/SAC code search logic
+  }
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle>HSN/SAC Code Lookup</CardTitle>
+      </CardHeader>
+      <CardContent>
+        <div className="flex space-x-2">
+          <Input
+            placeholder="Search HSN/SAC code or description"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+          <Button onClick={handleSearch}>Search</Button>
+        </div>
+        {/* Display search results */}
+      </CardContent>
+    </Card>
+  )
+}
+
+
+
+
 export default function EnhancedFinancialApp() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -800,6 +1297,9 @@ export default function EnhancedFinancialApp() {
     { title: "Sales", icon: Weight },
     { title: "Purchases", icon: ShoppingCart },
     { title: 'Compare Invoices', icon: GitCompareArrows },
+    { title: "GST Returns", icon: FileCheck },
+    { title: "ITC Management", icon: CreditCard },
+    { title: "HSN/SAC Lookup", icon: Search },
     { title: "AI Bot", icon: MessageSquare },
     { title: "GST Dashboard", icon: Calculator },
     { title: "Settings", icon: Settings },
@@ -868,17 +1368,20 @@ export default function EnhancedFinancialApp() {
         );
         case 'Compare Invoices':
           return <CompareInvoicesScreen transactions={transactions} />  
+        case "GST Returns":
+          return <GSTReturnFilingAssistant />
+        case "ITC Management":
+          return <ITCManagement />
+        case "HSN/SAC Lookup":
+          return <HSNSACLookup />  
+          
       default:
         return null;
     }
   };
 
   return (
-    <div
-      className={`min-h-screen bg-background text-foreground ${
-        darkMode ? "dark" : ""
-      }`}
-    >
+    <div className={`min-h-screen bg-background text-foreground ${darkMode ? "dark" : ""}`}>
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <aside
@@ -886,42 +1389,53 @@ export default function EnhancedFinancialApp() {
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
           } md:translate-x-0 fixed md:static top-0 left-0 bottom-0 z-50`}
         >
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-6">
-              <ArrowLeft
-                onClick={() => setSidebarOpen(false)}
-                className="h-7 w-7"
-              />
-              <div className="flex items-center flex-1 ml-4">
-                <Avatar>
-                  <AvatarImage src="https://xsgames.co/randomusers/avatar.php?g=male" />
-                  {/* <AvatarImage src="https://icon-library.com/images/generic-user-icon/generic-user-icon-13.jpg" /> */}
-                  <AvatarFallback>CN</AvatarFallback>
-                </Avatar>
-                <h1 className="text-xl md:text-2xl font-bold ml-2">
-                  Siddharth
-                </h1>
+          <div className="flex flex-col h-full">
+            <div className="p-4">
+              <div className="flex items-center justify-between mb-6">
+                <ArrowLeft
+                  onClick={() => setSidebarOpen(false)}
+                  className="h-7 w-7 md:hidden"
+                />
+                <div className="flex items-center flex-1 ml-4">
+                  <Avatar>
+                    <AvatarImage src="https://github.com/shadcn.png" />
+                    <AvatarFallback>CN</AvatarFallback>
+                  </Avatar>
+                  <h1 className="text-xl md:text-2xl font-bold ml-2">
+                    FinApp
+                  </h1>
+                </div>
               </div>
             </div>
-            <nav className="space-y-2">
-              {sidebarItems.map((item) => (
-                <SidebarItem
-                  key={item.title}
-                  title={item.title}
-                  icon={item.icon}
-                  isActive={activeItem === item.title}
-                  onClick={() => handleNavigation(item.title)}
-                />
-              ))}
-              <SidebarItem
-                title="Logout"
-                icon={LogOut}
-                isActive={true}
-                onClick={() => {
-                  /* Handle logout */
-                }}
-              />
-            </nav>
+            <ScrollArea className="flex-1 w-full">
+              <div className="px-4">
+                <nav className="space-y-2">
+                  {sidebarItems.map((item) => (
+                    <Button
+                      key={item.title}
+                      variant="ghost"
+                      className={`w-full justify-start ${
+                        activeItem === item.title ? "bg-primary/10 text-primary" : ""
+                      }`}
+                      onClick={() => handleNavigation(item.title)}
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {item.title}
+                    </Button>
+                  ))}
+                </nav>
+              </div>
+            </ScrollArea>
+            <div className="p-4">
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {/* Handle logout */}}
+              >
+                <LogOut className="mr-2 h-4 w-4" />
+                Logout
+              </Button>
+            </div>
           </div>
         </aside>
 
