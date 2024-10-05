@@ -44,7 +44,8 @@ import {
   ArrowUpIcon,
   BarChart2,
   AlertTriangle,
-  CalendarCheck
+  CalendarCheck,
+  XCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -112,6 +113,8 @@ import {
  LineChart, 
  Line
 } from "recharts";
+
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 type InvoiceItems = {
   description: string;
@@ -979,35 +982,35 @@ const GSTDashboardScreen = () => {
  return (
   <div className="space-y-4">
     <h2 className="text-xl sm:text-2xl font-semibold">GST Dashboard</h2>
-    <Input placeholder="Search GSTIN" className="text-sm" />
+    {/* <Input placeholder="Search GSTIN" className="text-sm" /> */}
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm sm:text-base">Company Name</CardTitle>
+          <CardTitle className="text-sm font-medium">Company Name</CardTitle>
         </CardHeader>
-        <CardContent className="text-xs sm:text-sm">
+        <CardContent className="text-xl font-bold">
           XYZ Enterprises Pvt Ltd
         </CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm sm:text-base">GSTIN Status</CardTitle>
+          <CardTitle className="text-sm font-medium">GSTIN Status</CardTitle>
         </CardHeader>
-        <CardContent className="text-xs sm:text-sm">Active</CardContent>
+        <CardContent className="text-xl font-bold">Active</CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm sm:text-base">
+          <CardTitle className="text-sm font-medium">
             Registration Date
           </CardTitle>
         </CardHeader>
-        <CardContent className="text-xs sm:text-sm">01/04/2019</CardContent>
+        <CardContent className="text-xl font-bold">01/04/2019</CardContent>
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-sm sm:text-base">Business Type</CardTitle>
+          <CardTitle className="text-sm font-medium">Business Type</CardTitle>
         </CardHeader>
-        <CardContent className="text-xs sm:text-sm">
+        <CardContent className="text-xl font-bold">
           Private Limited Company
         </CardContent>
       </Card>
@@ -1123,6 +1126,7 @@ const GSTDashboardScreen = () => {
             </TabsList>
             <TabsContent value="returns" className="space-y-4">
               <div className="flex items-center">
+              <CalendarCheck className="mr-2 h-4 w-4 text-blue-500" />
                 <span className="font-medium">Next GSTR-1 due on 11th of next month</span>
               </div>
               <p className="text-sm text-muted-foreground">Ensure all your sales invoices for the current month are recorded to file GSTR-1 on time.</p>
@@ -2027,6 +2031,150 @@ const HSNSACLookup = () => {
   );
 };
 
+const mockVerifyGST = async (gstNumber: string) => {
+  // Simulating API call delay
+  await new Promise(resolve => setTimeout(resolve, 1000))
+  
+  // Mock data for demonstration
+  const mockData: Record<string, any> = {
+    '29AABCU9603R1ZJ': { 
+      valid: true, 
+      name: 'ABC Company Ltd', 
+      address: '123 Main St, Bangalore', 
+      status: 'Active',
+      lastFiled: '2024-02-15',
+      riskScore: 'Low'
+    },
+    '27AADCB2230M1Z3': { 
+      valid: true, 
+      name: 'XYZ Industries', 
+      address: '456 Park Ave, Mumbai', 
+      status: 'Active',
+      lastFiled: '2024-01-31',
+      riskScore: 'Medium'
+    },
+    '07AAACP0000Q1Z4': { 
+      valid: false, 
+      name: 'Fake Enterprises', 
+      address: 'Unknown', 
+      status: 'Suspended',
+      lastFiled: '2023-06-30',
+      riskScore: 'High'
+    }
+  }
+
+  return mockData[gstNumber] || { valid: false, name: 'Not Found', address: 'N/A', status: 'Invalid', lastFiled: 'N/A', riskScore: 'Unknown' }
+}
+
+const GSTVerification =() => {
+  const [gstNumber, setGstNumber] = useState('')
+  const [verificationResult, setVerificationResult] = useState<any>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [recentVerifications, setRecentVerifications] = useState<any[]>([])
+
+  const handleVerify = async () => {
+    setIsLoading(true)
+    try {
+      const result = await mockVerifyGST(gstNumber)
+      setVerificationResult(result)
+      setRecentVerifications(prev => [{ gstNumber, ...result }, ...prev.slice(0, 4)])
+    } catch (error) {
+      console.error('Verification failed:', error)
+      setVerificationResult({ valid: false, name: 'Error', address: 'Verification failed', status: 'Error', lastFiled: 'N/A', riskScore: 'Unknown' })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const getRiskColor = (risk: string) => {
+    switch (risk.toLowerCase()) {
+      case 'low': return 'text-green-500 dark:text-green-400'
+      case 'medium': return 'text-yellow-500 dark:text-yellow-400'
+      case 'high': return 'text-red-500 dark:text-red-400'
+      default: return 'text-gray-500 dark:text-gray-400'
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle>GST Transaction Verification</CardTitle>
+        <CardDescription>Verify GST numbers and assess potential risks</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex space-x-2">
+          <div className="flex-grow">
+            <Label htmlFor="gstNumber">GST Number</Label>
+            <Input
+              id="gstNumber"
+              placeholder="Enter GST Number"
+              value={gstNumber}
+              onChange={(e) => setGstNumber(e.target.value)}
+            />
+          </div>
+          <div className="flex items-end">
+            <Button onClick={handleVerify} disabled={isLoading}>
+              {isLoading ? 'Verifying...' : 'Verify'}
+              <Search className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+
+        {verificationResult && (
+          <Alert className={`mt-4 ${verificationResult.valid ? 'bg-green-50 dark:bg-green-900' : 'bg-red-50 dark:bg-red-900'}`}>
+            <AlertTitle className="flex items-center">
+              {verificationResult.valid ? (
+                <CheckCircle className="h-4 w-4 text-green-500 dark:text-green-400 mr-2" />
+              ) : (
+                <XCircle className="h-4 w-4 text-red-500 dark:text-red-400 mr-2" />
+              )}
+              {verificationResult.valid ? 'Valid GST Number' : 'Invalid GST Number'}
+            </AlertTitle>
+            <AlertDescription>
+              <p><strong>Name:</strong> {verificationResult.name}</p>
+              <p><strong>Address:</strong> {verificationResult.address}</p>
+              <p><strong>Status:</strong> {verificationResult.status}</p>
+              <p><strong>Last Filed:</strong> {verificationResult.lastFiled}</p>
+              <p className={`font-bold ${getRiskColor(verificationResult.riskScore)}`}>
+                <strong>Risk Score:</strong> {verificationResult.riskScore}
+              </p>
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <div className="mt-8">
+          <h3 className="text-lg font-semibold mb-2">Recent Verifications</h3>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>GST Number</TableHead>
+                <TableHead>Name</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Risk Score</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {recentVerifications.map((verification, index) => (
+                <TableRow key={index}>
+                  <TableCell>{verification.gstNumber}</TableCell>
+                  <TableCell>{verification.name}</TableCell>
+                  <TableCell>{verification.status}</TableCell>
+                  <TableCell className={getRiskColor(verification.riskScore)}>{verification.riskScore}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </CardContent>
+      <CardFooter>
+        <p className="text-sm text-muted-foreground">
+          Always verify the GST details of your business partners to ensure compliance and reduce the risk of fraud.
+        </p>
+      </CardFooter>
+    </Card>
+  )
+}
+
 export default function EnhancedFinancialApp() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -2045,6 +2193,7 @@ export default function EnhancedFinancialApp() {
     { title: "Compare Invoices", icon: GitCompareArrows },
     { title: "GST Returns", icon: FileCheck },
     { title: "ITC Management", icon: CreditCard },
+    { title: "GST Verification", icon: CheckCircle },
     { title: "HSN/SAC Lookup", icon: Search },
     { title: "AI Bot", icon: MessageSquare },
     { title: "GST Dashboard", icon: Calculator },
@@ -2118,6 +2267,8 @@ export default function EnhancedFinancialApp() {
         return <GSTReturnFilingAssistant />;
       case "ITC Management":
         return <ITCManagement />;
+      case "GST Verification":
+        return <GSTVerification />;
       case "HSN/SAC Lookup":
         return <HSNSACLookup />;
 
