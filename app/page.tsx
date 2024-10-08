@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   Home,
   FileText,
@@ -45,7 +45,11 @@ import {
   BarChart2,
   AlertTriangle,
   CalendarCheck,
-  XCircle
+  XCircle,
+  HelpCircle,
+  Send,
+  Bot,
+  Info
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,7 +108,7 @@ import {
   XAxis,
   YAxis,
   CartesianGrid,
-  Tooltip,
+  Tooltip as Tooltips,
   PieChart as RePieChart,
   Pie,
   Cell,
@@ -115,6 +119,7 @@ import {
 } from "recharts";
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 type InvoiceItems = {
   description: string;
@@ -467,7 +472,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
               <XAxis dataKey="name" />
               <YAxis />
               <CartesianGrid strokeDasharray="3 3" />
-              <Tooltip />
+              <Tooltips />
               <Area
                 type="monotone"
                 dataKey="Sales"
@@ -554,7 +559,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
                   />
                 ))}
               </Pie>
-              <Tooltip />
+              <Tooltips />
             </RePieChart>
           </ResponsiveContainer>
           <div className="mt-4 grid grid-cols-2 gap-4">
@@ -898,24 +903,181 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
   );
 };
 
-const AIBotScreen = () => (
-  <div className="space-y-4">
-    <h2 className="text-xl sm:text-2xl font-semibold">AI Assistant</h2>
-    <div className="grid grid-cols-2 gap-2 sm:gap-4">
-      <Button className="text-xs sm:text-sm">GST Filing Help</Button>
-      <Button className="text-xs sm:text-sm">Invoice Query</Button>
-      <Button className="text-xs sm:text-sm">Tax Calculation</Button>
-      <Button className="text-xs sm:text-sm">Compliance Check</Button>
-    </div>
-    <div className="border rounded-lg p-4 h-48 sm:h-64 overflow-y-auto">
-      {/* Chat messages would go here */}
-    </div>
-    <div className="flex space-x-2">
-      <Input placeholder="Type your message..." className="flex-grow text-sm" />
-      <Button className="text-xs sm:text-sm">Send</Button>
-    </div>
-  </div>
-);
+type Message = {
+  role: 'user' | 'assistant' | 'typing'
+  content: string
+}
+
+const initialMessages: Message[] = [
+  { role: 'assistant', content: `Hello! I'm your GST AI Assistant. How can I help you today?` },
+]
+
+const AIBotScreen = () => {
+
+  const [messages, setMessages] = useState<Message[]>(initialMessages)
+  const [input, setInput] = useState('')
+  const [isTyping, setIsTyping] = useState(false)
+  const scrollAreaRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight
+    }
+  }, [messages])
+
+  const handleSend = () => {
+    if (input.trim()) {
+      setMessages(prev => [...prev, { role: 'user', content: input }])
+      setInput('')
+      setIsTyping(true)
+
+      // Simulate AI typing
+      setMessages(prev => [...prev, { role: 'typing', content: '' }])
+
+      // Simulate AI response after 5 seconds
+      setTimeout(() => {
+        setIsTyping(false)
+        setMessages(prev => {
+          const newMessages = prev.filter(msg => msg.role !== 'typing')
+          return [...newMessages, { role: 'assistant', content: getSimulatedResponse(input) }]
+        })
+      }, 5000)
+    }
+  }
+
+  const getSimulatedResponse = (query: string): string => {
+    // This is a very basic simulation. In a real app, this would be replaced with actual AI responses.
+    if (query.toLowerCase().includes('gst rates')) {
+      return "GST rates in India typically fall into four brackets: 5%, 12%, 18%, and 28%. Some essential items are taxed at 0% or are exempt. The specific rate depends on the type of good or service."
+    } else if (query.toLowerCase().includes('file gstr')) {
+      return "To file your GSTR, log into the GST portal, navigate to Returns dashboard, select the appropriate form (e.g., GSTR-1 for outward supplies), fill in the required details, and submit. Remember to file within the due dates to avoid penalties."
+    } else if (query.toLowerCase().includes('input tax credit')) {
+      return "Input Tax Credit (ITC) is the credit you get for the tax paid on inputs used for your business. You can claim ITC in your GSTR-3B return. Ensure you have valid tax invoices and that the supplier has filed their returns for you to claim ITC."
+    } else {
+      return "I'm sorry, I don't have specific information about that. Is there anything else related to GST that I can help you with?"
+    }
+  }
+
+  return (
+    <Card className="w-full max-w-4xl mx-auto">
+      <CardHeader>
+        <CardTitle className="flex items-center text-xl sm:text-2xl">
+          <Bot className="mr-2 h-6 w-6" />
+          GST AI Assistant
+        </CardTitle>
+        <CardDescription className="text-sm sm:text-base">Get help with GST-related queries and calculations</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Tabs defaultValue="chat" className="w-full">
+          <TabsList className="grid w-full grid-cols-4 mb-4">
+            <TabsTrigger value="chat" className="text-xs sm:text-sm">Chat</TabsTrigger>
+            <TabsTrigger value="calculator" className="text-xs sm:text-sm">Calculator</TabsTrigger>
+            <TabsTrigger value="calendar" className="text-xs sm:text-sm">Due Dates</TabsTrigger>
+            <TabsTrigger value="insights" className="text-xs sm:text-sm">Insights</TabsTrigger>
+          </TabsList>
+          <TabsContent value="chat" className="mt-0">
+            <ScrollArea className="h-[300px] lg:h-[400px] w-full  border rounded-md" ref={scrollAreaRef}>
+              <div className="p-4">
+                {messages.map((message, index) => (
+                  <div key={index} className={`flex ${message.role === 'assistant' || message.role === 'typing' ? 'justify-start' : 'justify-end'} mb-4`}>
+                    <div className={`flex items-start max-w-[80%] ${message.role === 'assistant' || message.role === 'typing' ? 'flex-row' : 'flex-row-reverse'}`}>
+                      <Avatar className="w-8 h-8  sm:block">
+                        <AvatarFallback>{message.role === 'assistant' || message.role === 'typing' ? 'AI' : 'You'}</AvatarFallback>
+                      </Avatar>
+                      <div className={`mx-2 p-3 rounded-lg text-sm sm:text-base ${
+                        message.role === 'assistant' ? 'bg-secondary' : 
+                        message.role === 'typing' ? 'bg-secondary animate-pulse' : 
+                        'bg-primary text-primary-foreground'
+                      }`}>
+                        {message.role === 'typing' ? (
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                            <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                          </div>
+                        ) : (
+                          message.content
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+            <div className="flex w-full items-center space-x-2 mt-4">
+              <Input
+                placeholder="Type your message here..."
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSend()}
+                className="flex-grow"
+                disabled={isTyping}
+              />
+              <Button onClick={handleSend} className="px-3 sm:px-4" disabled={isTyping}>
+                <Send className="h-4 w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Send</span>
+              </Button>
+            </div>
+          </TabsContent>
+          <TabsContent value="calculator" className="mt-0">
+            <div className="p-4 bg-secondary rounded-lg">
+              <h3 className="text-lg font-semibold mb-2">GST Calculator</h3>
+              <p className="text-sm text-muted-foreground mb-4">Calculate GST for your transactions quickly.</p>
+              {/* Add GST calculator UI here */}
+              <p className="text-sm">GST calculator functionality to be implemented.</p>
+            </div>
+          </TabsContent>
+          <TabsContent value="calendar" className="mt-0">
+            <div className="p-4 bg-secondary rounded-lg">
+              <h3 className="text-lg font-semibold mb-2">GST Filing Calendar</h3>
+              <p className="text-sm text-muted-foreground mb-4">Keep track of important GST filing dates.</p>
+              <ul className="list-disc list-inside text-sm">
+                <li>GSTR-1: 11th of next month</li>
+                <li>GSTR-3B: 20th of next month</li>
+                <li>GSTR-9: 31st December</li>
+              </ul>
+            </div>
+          </TabsContent>
+          <TabsContent value="insights" className="mt-0">
+            <div className="p-4 bg-secondary rounded-lg">
+              <h3 className="text-lg font-semibold mb-2">GST Insights</h3>
+              <p className="text-sm text-muted-foreground mb-4">Get valuable insights about your GST data.</p>
+              <ul className="list-disc list-inside text-sm">
+                <li>Your GST liability has increased by 5% this month</li>
+                <li>You have unclaimed Input Tax Credit of ₹10,000</li>
+                <li>3 invoices are pending reconciliation</li>
+              </ul>
+            </div>
+          </TabsContent>
+        </Tabs>
+      </CardContent>
+      <CardFooter className="flex-col sm:flex-row">
+        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            <FileText className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Filing</span> Guide
+          </Button>
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            <HelpCircle className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">GST</span> FAQs
+          </Button>
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            <AlertTriangle className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">Compliance</span> Alerts
+          </Button>
+          <Button variant="outline" size="sm" className="text-xs sm:text-sm">
+            <TrendingUp className="h-4 w-4 mr-1 sm:mr-2" />
+            <span className="hidden sm:inline">GST</span> Analytics
+          </Button>
+        </div>
+      </CardFooter>
+    </Card>
+  )
+};
+
+
+
+
 
 const GSTDashboardScreen = () => {
 
@@ -1082,7 +1244,7 @@ const GSTDashboardScreen = () => {
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip />
+                <Tooltips />
               </RePieChart>
             </ResponsiveContainer>
             <div className="mt-4 grid grid-cols-2 gap-4">
@@ -1106,7 +1268,7 @@ const GSTDashboardScreen = () => {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="name" />
                 <YAxis />
-                <Tooltip />
+                <Tooltips />
                 <Bar dataKey="filed" fill="#8884d8" />
               </BarCharts>
             </ResponsiveContainer>
@@ -1126,7 +1288,7 @@ const GSTDashboardScreen = () => {
             </TabsList>
             <TabsContent value="returns" className="space-y-4">
               <div className="flex items-center">
-              <CalendarCheck className="mr-2 h-4 w-4 text-blue-500" />
+              <CalendarCheck className="mr-2 h-4 w-4 text-green-500" />
                 <span className="font-medium">Next GSTR-1 due on 11th of next month</span>
               </div>
               <p className="text-sm text-muted-foreground">Ensure all your sales invoices for the current month are recorded to file GSTR-1 on time.</p>
@@ -1159,7 +1321,7 @@ const GSTDashboardScreen = () => {
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis dataKey="month" />
               <YAxis />
-              <Tooltip />
+              <Tooltips />
               <Line type="monotone" dataKey="gstCollected" stroke="#8884d8" name="GST Collected" />
               <Line type="monotone" dataKey="gstPaid" stroke="#82ca9d" name="GST Paid" />
             </LineChart>
@@ -2003,30 +2165,123 @@ function ITCEntryDialog({
   );
 }
 
+// Mock data for HSN/SAC codes
+type HSNSACItem = {
+  code: string;
+  description: string;
+  gstRate: string;
+};
+
+// Define the valid search keys (this is the fix)
+type SearchType = keyof HSNSACItem;
+
+const mockHSNSACData: HSNSACItem[] = [
+  { code: '0101', description: 'Live horses, asses, mules and hinnies', gstRate: '12%' },
+  { code: '0201', description: 'Meat of bovine animals, fresh or chilled', gstRate: '0%' },
+  { code: '1006', description: 'Rice', gstRate: '5%' },
+  { code: '2201', description: 'Waters, including natural or artificial mineral waters', gstRate: '18%' },
+  { code: '3004', description: 'Medicaments (excluding goods of heading 30.02, 30.05 or 30.06)', gstRate: '12%' },
+];
+
 const HSNSACLookup = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [results, setResults] = useState([]);
+  const [searchType, setSearchType] = useState<SearchType>("code"); // Use the SearchType here
+  const [results, setResults] = useState(mockHSNSACData);
 
   const handleSearch = () => {
-    // Implement HSN/SAC code search logic
+    const filteredResults = mockHSNSACData.filter(item =>
+      item[searchType].toLowerCase().includes(searchTerm.toLowerCase()) // This is safe now
+    );
+    setResults(filteredResults);
   };
 
   return (
     <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
-        <CardTitle>HSN/SAC Code Lookup</CardTitle>
+        <CardTitle className="text-2xl font-bold">HSN/SAC Code Lookup</CardTitle>
+        <CardDescription>
+          Search for Harmonized System of Nomenclature (HSN) or Services Accounting Code (SAC)
+        </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="flex space-x-2">
-          <Input
-            placeholder="Search HSN/SAC code or description"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-          <Button onClick={handleSearch}>Search</Button>
+        <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4 mb-6">
+          <div className="flex-1">
+            <Input
+              placeholder="Search HSN/SAC code or description"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full"
+            />
+          </div>
+          <Select value={searchType} onValueChange={(value) => setSearchType(value as keyof HSNSACItem)}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <SelectValue placeholder="Search by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="code">Code</SelectItem>
+              <SelectItem value="description">Description</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button onClick={handleSearch} className="w-full sm:w-auto">
+            <Search className="w-4 h-4 mr-2" />
+            Search
+          </Button>
         </div>
-        {/* Display search results */}
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>HSN/SAC Code</TableHead>
+              <TableHead>Description</TableHead>
+              <TableHead>GST Rate</TableHead>
+              <TableHead>Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {results.map((item, index) => (
+              <TableRow key={index}>
+                <TableCell>{item.code}</TableCell>
+                <TableCell>{item.description}</TableCell>
+                <TableCell>{item.gstRate}</TableCell>
+                <TableCell>
+                  <div className="flex space-x-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon">
+                            <Info className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>View detailed information</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button variant="outline" size="icon">
+                            <Download className="h-4 w-4" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Download HSN/SAC details</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
       </CardContent>
+      <CardFooter className="flex justify-between">
+        <p className="text-sm text-muted-foreground">Showing {results.length} results</p>
+        <Button variant="outline">
+          <Download className="w-4 h-4 mr-2" />
+          Export Results
+        </Button>
+      </CardFooter>
     </Card>
   );
 };
