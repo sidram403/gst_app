@@ -1010,11 +1010,11 @@ const AIBotScreen = () => {
               <div className="p-4">
                 {messages.map((message, index) => (
                   <div key={index} className={`flex ${message.role === 'assistant' || message.role === 'typing' ? 'justify-start' : 'justify-end'} mb-4`}>
-                    <div className={`flex items-start max-w-[80%] ${message.role === 'assistant' || message.role === 'typing' ? 'flex-row' : 'flex-row-reverse'}`}>
+                    <div className={`flex items-start max-w-[100%] ${message.role === 'assistant' || message.role === 'typing' ? 'flex-row' : 'flex-row-reverse'}`}>
                       <Avatar className="w-8 h-8  sm:block">
-                        <AvatarFallback>{message.role === 'assistant' || message.role === 'typing' ? 'AI' : 'You'}</AvatarFallback>
+                        <AvatarFallback>{message.role === 'assistant' || message.role === 'typing' ? 'AI' : 'U'}</AvatarFallback>
                       </Avatar>
-                      <div className={`mx-2 p-3 rounded-lg text-sm sm:text-base ${
+                      <div className={`mx-2 p-2 rounded-lg text-sm sm:text-base ${
                         message.role === 'assistant' ? 'bg-secondary' : 
                         message.role === 'typing' ? 'bg-secondary animate-pulse' : 
                         'bg-primary text-primary-foreground'
@@ -2617,7 +2617,7 @@ export default function EnhancedFinancialApp() {
 
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="bg-background border-b p-4 flex justify-between items-center">
+          <header className="bg-background border-b p-4 flex justify-between items-center sticky">
             <Button
               variant="ghost"
               size="icon"
