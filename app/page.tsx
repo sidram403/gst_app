@@ -1054,13 +1054,7 @@ const AIBotScreen = () => {
               <h3 className="text-lg font-semibold mb-2">GST Calculator</h3>
               <p className="text-sm text-muted-foreground mb-4">Calculate GST for your transactions quickly.</p>
               {/* Add GST calculator UI here */}
-              <Card>
-        <CardHeader>
-          <CardTitle>GST Calculator</CardTitle>
-          <CardDescription>Calculate GST for your transactions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
+              <div className="grid gap-4 md:grid-cols-3">
             <div className="space-y-2">
               <Label htmlFor="baseAmount">Base Amount (₹)</Label>
               <Input
@@ -1102,8 +1096,7 @@ const AIBotScreen = () => {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+              
             </div>
           </TabsContent>
           <TabsContent value="calendar" className="mt-0">
