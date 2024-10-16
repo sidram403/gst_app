@@ -126,6 +126,8 @@ type InvoiceItems = {
   quantity: string;
   unitPrice: number;
   totalPrice: number;
+  gstPercentage: number;
+
 };
 
 type Transaction = {
@@ -140,8 +142,6 @@ type Transaction = {
   gst: {
     cgst: number;
     sgst: number;
-    cgstPercentage: number;
-    sgstPercentage: number;
   };
   totalAmount: number;
 };
@@ -635,14 +635,13 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
 const BillingScreen = ({ onSave }: BillingScreenProps) => {
   const [entryType, setEntryType] = useState<"sales" | "purchase">("sales");
   const [items, setItems] = useState<InvoiceItems[]>([
-    { description: "", quantity: "1", unitPrice: 0, totalPrice: 0 },
+    { description: "", quantity: "1", unitPrice: 0, totalPrice: 0, gstPercentage: 18 },
   ]);
-  const [gstPercentage, setGstPercentage] = useState(18);
 
   const handleAddItem = () => {
     setItems([
       ...items,
-      { description: "", quantity: "1", unitPrice: 0, totalPrice: 0 },
+      { description: "", quantity: "1", unitPrice: 0, totalPrice: 0, gstPercentage: 18 },
     ]);
   };
 
@@ -658,10 +657,13 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
     const newItems = [...items];
     newItems[index] = { ...newItems[index], [field]: value };
 
-    if (field === "quantity" || field === "unitPrice") {
+    if (field === "quantity" || field === "unitPrice" || field === "gstPercentage") {
       const quantity = parseFloat(newItems[index].quantity) || 0;
       const unitPrice = parseFloat(newItems[index].unitPrice.toString()) || 0;
-      newItems[index].totalPrice = quantity * unitPrice;
+      const gstPercentage = parseFloat(newItems[index].gstPercentage.toString()) || 0;
+      const priceWithoutGST = quantity * unitPrice;
+      const gstAmount = (priceWithoutGST * gstPercentage) / 100;
+      newItems[index].totalPrice = priceWithoutGST + gstAmount;
     }
 
     setItems(newItems);
@@ -669,19 +671,20 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
 
   const calculateTotals = () => {
     const totalAmountWithoutGST = items.reduce(
-      (sum, item) => sum + item.totalPrice,
+      (sum, item) => sum + (parseFloat(item.quantity) * item.unitPrice),
       0
     );
-    const gstAmount = (totalAmountWithoutGST * gstPercentage) / 100;
-    const totalAmount = totalAmountWithoutGST + gstAmount;
+    const totalGST = items.reduce(
+      (sum, item) => sum + ((parseFloat(item.quantity) * item.unitPrice * item.gstPercentage) / 100),
+      0
+    );
+    const totalAmount = totalAmountWithoutGST + totalGST;
 
     return {
       totalAmountWithoutGST,
       gst: {
-        cgst: gstAmount / 2,
-        sgst: gstAmount / 2,
-        cgstPercentage: gstPercentage / 2,
-        sgstPercentage: gstPercentage / 2,
+        cgst: totalGST / 2,
+        sgst: totalGST / 2,
       },
       totalAmount,
     };
@@ -828,6 +831,25 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
                 />
               </div>
               <div className="w-28">
+                <Label htmlFor={`gstPercentage-${index}`} className="text-xs">
+                  GST %
+                </Label>
+                <Select
+                  value={item.gstPercentage.toString()}
+                  onValueChange={(value) => handleItemChange(index, "gstPercentage", parseInt(value))}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder="GST %" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5%</SelectItem>
+                    <SelectItem value="12">12%</SelectItem>
+                    <SelectItem value="18">18%</SelectItem>
+                    <SelectItem value="28">28%</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="w-28">
                 <Label className="text-xs">Total Price</Label>
                 <Input
                   value={item.totalPrice.toFixed(2)}
@@ -857,37 +879,17 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
           </Button>
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="gstPercentage" className="text-sm">
-            GST Percentage
-          </Label>
-          <Select
-            value={gstPercentage.toString()}
-            onValueChange={(value) => setGstPercentage(parseInt(value))}
-          >
-            <SelectTrigger className="w-[180px]">
-              <SelectValue placeholder="Select GST %" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="5">5%</SelectItem>
-              <SelectItem value="12">12%</SelectItem>
-              <SelectItem value="18">18%</SelectItem>
-              <SelectItem value="28">28%</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
         <div className="space-y-2 text-right">
           <p className="text-sm">
             Total (without GST): ₹
             {calculateTotals().totalAmountWithoutGST.toFixed(2)}
           </p>
           <p className="text-sm">
-            CGST ({gstPercentage / 2}%): ₹
+            CGST: ₹
             {calculateTotals().gst.cgst.toFixed(2)}
           </p>
           <p className="text-sm">
-            SGST ({gstPercentage / 2}%): ₹
+            SGST: ₹
             {calculateTotals().gst.sgst.toFixed(2)}
           </p>
           <p className="text-lg font-semibold">
@@ -918,6 +920,14 @@ const AIBotScreen = () => {
   const [input, setInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const scrollAreaRef = useRef<HTMLDivElement>(null)
+  const [baseAmount, setBaseAmount] = useState<string>('')
+  const [gstRate, setGstRate] = useState<string>('18')
+  const [calculatedGST, setCalculatedGST] = useState<{
+    cgst: number;
+    sgst: number;
+    igst: number;
+    total: number;
+  } | null>(null)
 
   useEffect(() => {
     if (scrollAreaRef.current) {
@@ -956,6 +966,26 @@ const AIBotScreen = () => {
     } else {
       return "I'm sorry, I don't have specific information about that. Is there anything else related to GST that I can help you with?"
     }
+  }
+
+  const calculateGST = () => {
+    const amount = parseFloat(baseAmount)
+    const rate = parseFloat(gstRate)
+
+    if (isNaN(amount) || isNaN(rate)) {
+      setCalculatedGST(null)
+      return
+    }
+
+    const totalGST = (amount * rate) / 100
+    const halfGST = totalGST / 2
+
+    setCalculatedGST({
+      cgst: halfGST,
+      sgst: halfGST,
+      igst: totalGST,
+      total: amount + totalGST
+    })
   }
 
   return (
@@ -1024,7 +1054,56 @@ const AIBotScreen = () => {
               <h3 className="text-lg font-semibold mb-2">GST Calculator</h3>
               <p className="text-sm text-muted-foreground mb-4">Calculate GST for your transactions quickly.</p>
               {/* Add GST calculator UI here */}
-              <p className="text-sm">GST calculator functionality to be implemented.</p>
+              <Card>
+        <CardHeader>
+          <CardTitle>GST Calculator</CardTitle>
+          <CardDescription>Calculate GST for your transactions</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-3">
+            <div className="space-y-2">
+              <Label htmlFor="baseAmount">Base Amount (₹)</Label>
+              <Input
+                id="baseAmount"
+                placeholder="Enter base amount"
+                value={baseAmount}
+                onChange={(e) => setBaseAmount(e.target.value)}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="gstRate">GST Rate (%)</Label>
+              <Select value={gstRate} onValueChange={setGstRate}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select GST rate" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="5">5%</SelectItem>
+                  <SelectItem value="12">12%</SelectItem>
+                  <SelectItem value="18">18%</SelectItem>
+                  <SelectItem value="28">28%</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-end">
+              <Button onClick={calculateGST} className="w-full">
+                <Calculator className="w-4 h-4 mr-2" />
+                Calculate GST
+              </Button>
+            </div>
+          </div>
+          {calculatedGST && (
+            <div className="mt-4 p-4 bg-muted rounded-md">
+              <h4 className="font-semibold mb-2">GST Calculation Results:</h4>
+              <div className="grid grid-cols-2 gap-2">
+                <p>CGST (₹{parseFloat(gstRate) / 2}%): ₹{calculatedGST.cgst.toFixed(2)}</p>
+                <p>SGST (₹{parseFloat(gstRate) / 2}%): ₹{calculatedGST.sgst.toFixed(2)}</p>
+                <p>IGST (₹{gstRate}%): ₹{calculatedGST.igst.toFixed(2)}</p>
+                <p className="font-semibold">Total Amount: ₹{calculatedGST.total.toFixed(2)}</p>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
             </div>
           </TabsContent>
           <TabsContent value="calendar" className="mt-0">
@@ -1081,14 +1160,7 @@ const AIBotScreen = () => {
 
 const GSTDashboardScreen = () => {
 
-  const [baseAmount, setBaseAmount] = useState<string>('')
-  const [gstRate, setGstRate] = useState<string>('18')
-  const [calculatedGST, setCalculatedGST] = useState<{
-    cgst: number;
-    sgst: number;
-    igst: number;
-    total: number;
-  } | null>(null)
+  
 
   const pieChartData = [
     { name: 'CGST', value: 25 },
@@ -1122,25 +1194,7 @@ const GSTDashboardScreen = () => {
   
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042']
 
-  const calculateGST = () => {
-    const amount = parseFloat(baseAmount)
-    const rate = parseFloat(gstRate)
-
-    if (isNaN(amount) || isNaN(rate)) {
-      setCalculatedGST(null)
-      return
-    }
-
-    const totalGST = (amount * rate) / 100
-    const halfGST = totalGST / 2
-
-    setCalculatedGST({
-      cgst: halfGST,
-      sgst: halfGST,
-      igst: totalGST,
-      total: amount + totalGST
-    })
-  }
+  
  return (
   <div className="space-y-4">
     <h2 className="text-xl sm:text-2xl font-semibold">GST Dashboard</h2>
@@ -1417,56 +1471,7 @@ d consider adjusting prices or exploring different GST rate categories to optimi
           </div>
         </CardContent>
       </Card>
-    <Card>
-        <CardHeader>
-          <CardTitle>GST Calculator</CardTitle>
-          <CardDescription>Calculate GST for your transactions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="space-y-2">
-              <Label htmlFor="baseAmount">Base Amount (₹)</Label>
-              <Input
-                id="baseAmount"
-                placeholder="Enter base amount"
-                value={baseAmount}
-                onChange={(e) => setBaseAmount(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="gstRate">GST Rate (%)</Label>
-              <Select value={gstRate} onValueChange={setGstRate}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select GST rate" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="5">5%</SelectItem>
-                  <SelectItem value="12">12%</SelectItem>
-                  <SelectItem value="18">18%</SelectItem>
-                  <SelectItem value="28">28%</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex items-end">
-              <Button onClick={calculateGST} className="w-full">
-                <Calculator className="w-4 h-4 mr-2" />
-                Calculate GST
-              </Button>
-            </div>
-          </div>
-          {calculatedGST && (
-            <div className="mt-4 p-4 bg-muted rounded-md">
-              <h4 className="font-semibold mb-2">GST Calculation Results:</h4>
-              <div className="grid grid-cols-2 gap-2">
-                <p>CGST (${parseFloat(gstRate) / 2}%): ₹{calculatedGST.cgst.toFixed(2)}</p>
-                <p>SGST (${parseFloat(gstRate) / 2}%): ₹{calculatedGST.sgst.toFixed(2)}</p>
-                <p>IGST (${gstRate}%): ₹{calculatedGST.igst.toFixed(2)}</p>
-                <p className="font-semibold">Total Amount: ₹{calculatedGST.total.toFixed(2)}</p>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+   
 
   </div>
  )
@@ -2430,6 +2435,8 @@ const GSTVerification =() => {
   )
 }
 
+
+
 export default function EnhancedFinancialApp() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -2439,6 +2446,22 @@ export default function EnhancedFinancialApp() {
     null
   );
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+
+  const calculateItemGST = (item: InvoiceItems) => {
+    const gstAmount = (parseFloat(item.quantity) * item.unitPrice * item.gstPercentage) / 100;
+    return {
+      cgst: gstAmount / 2,
+      sgst: gstAmount / 2,
+    };
+  };
+
+  const totalGST = selectedInvoice?.items.reduce((sum, item) => {
+    const { cgst, sgst } = calculateItemGST(item);
+    return {
+      cgst: sum.cgst + cgst,
+      sgst: sum.sgst + sgst,
+    };
+  }, { cgst: 0, sgst: 0 });
 
   const sidebarItems = [
     { title: "Dashboard", icon: Home },
@@ -2482,6 +2505,8 @@ export default function EnhancedFinancialApp() {
     setDarkMode(!darkMode);
     document.documentElement.classList.toggle("dark");
   };
+
+  
 
   const renderContent = () => {
     switch (activeItem) {
@@ -2647,103 +2672,91 @@ export default function EnhancedFinancialApp() {
 
       {/* Invoice Dialog */}
       <Dialog open={invoiceDialogOpen} onOpenChange={setInvoiceDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle className="text-lg text-center">
-              Invoice Details
-            </DialogTitle>
-          </DialogHeader>
-          <div className="py-4">
-            {selectedInvoice && (
-              <ScrollArea className="max-h-[80vh]">
-                <div className="space-y-4 p-4">
-                  {/* Header section */}
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex justify-between items-center">
-                      <div className="flex flex-col">
-                        <h2 className="text-lg font-bold">Invoice</h2>
-                        <p className="text-sm font-semibold">
-                          {selectedInvoice.invoiceNum}
-                        </p>
-                      </div>
+  <DialogContent className="sm:max-w-[700px] max-h-[90vh] p-4">
+    <DialogHeader>
+      <DialogTitle className="text-base sm:text-lg text-center">Invoice Details</DialogTitle>
+    </DialogHeader>
 
-                      <div className="text-right">
-                        <p className="text-sm font-semibold">
-                          {selectedInvoice.type === "sales"
-                            ? "Customer GSTIN"
-                            : "Vendor GSTIN"}{" "}
-                        </p>
-                        <p className="text-sm font-bold">
-                          {selectedInvoice.gstinNum}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Date and party name */}
-                  <div className="flex justify-between text-xs text-gray-500">
-                    <div className="flex items-center">
-                      <CalendarIcon className="mr-1 h-3 w-3" />
-                      {selectedInvoice.date}
-                    </div>
-                    <div>{selectedInvoice.partyName}</div>
-                  </div>
-
-                  {/* Table with description, quantity, and prices */}
-                  <Table className="text-xs">
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Description</TableHead>
-                        <TableHead className="text-right">Qty</TableHead>
-                        <TableHead className="text-right">Unit Price</TableHead>
-                        <TableHead className="text-right">Total</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {selectedInvoice.items.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.description}</TableCell>
-                          <TableCell className="text-right">
-                            {item.quantity}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            ₹{item.unitPrice.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            ₹{item.totalPrice.toFixed(2)}
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-
-                  {/* GST and Total breakdown */}
-                  <div className="space-y-2 text-right">
-                    <div className="flex justify-end items-center space-x-1">
-                      <span className="text-sm font-semibold">
-                        CGST {selectedInvoice.gst.cgstPercentage}%: ₹
-                        {selectedInvoice.gst.cgst.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-end items-center space-x-1">
-                      <span className="text-sm font-semibold">
-                        SGST {selectedInvoice.gst.sgstPercentage}%: ₹
-                        {selectedInvoice.gst.sgst.toFixed(2)}
-                      </span>
-                    </div>
-                    <div className="flex justify-end items-center space-x-1">
-                      <IndianRupee className="h-4 w-4 text-green-500" />
-                      <span className="text-lg font-semibold">
-                        Total: ₹{selectedInvoice.totalAmount.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </ScrollArea>
-            )}
+    <ScrollArea className="max-h-[calc(90vh-120px)] overflow-y-auto">
+      <div className="space-y-4">
+        {/* Invoice header */}
+        <div className="flex flex-col space-y-2 sm:flex-row sm:justify-between sm:items-center">
+          <div className="flex flex-col">
+            <h2 className="text-lg font-bold">Invoice</h2>
+            <p className="text-sm text-gray-600">Invoice #: {selectedInvoice?.invoiceNum}</p>
           </div>
-        </DialogContent>
-      </Dialog>
+          <div className="flex flex-col items-start sm:items-end">
+            <p className="text-sm font-semibold">
+              {selectedInvoice?.type === "sales" ? "Customer GSTIN" : "Vendor GSTIN"}:
+            </p>
+            <p className="text-sm font-bold">{selectedInvoice?.gstinNum}</p>
+          </div>
+        </div>
+
+        {/* Date and party info */}
+        <div className="flex flex-col sm:flex-row justify-between text-xs text-gray-600">
+          <div className="flex items-center space-x-1">
+            <CalendarIcon className="h-4 w-4" />
+            <span>{selectedInvoice?.date}</span>
+          </div>
+          <div>{selectedInvoice?.partyName}</div>
+        </div>
+
+        {/* Items table */}
+        <div className="overflow-x-auto">
+          <table className="min-w-full text-xs sm:text-sm border-collapse">
+            <thead>
+              <tr className="border-b">
+                <th className="text-left py-2">Description</th>
+                <th className="text-right py-2">Qty</th>
+                <th className="text-right py-2">Unit Price</th>
+                <th className="text-right py-2">GST %</th>
+                <th className="text-right py-2">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              {selectedInvoice?.items.map((item, index) => (
+                <tr key={index} className="border-b">
+                  <td className="py-1">{item.description}</td>
+                  <td className="py-1 text-right">{item.quantity}</td>
+                  <td className="py-1 text-right">₹{item.unitPrice.toFixed(2)}</td>
+                  <td className="py-1 text-right">{item.gstPercentage}%</td>
+                  <td className="py-1 text-right">₹{item.totalPrice.toFixed(2)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* GST and total breakdown */}
+        <div className="space-y-2 text-right text-sm">
+          <div className="flex justify-between">
+            <span>Subtotal:</span>
+            <span>₹{selectedInvoice?.totalAmountWithoutGST.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>CGST:</span>
+            <span>₹{totalGST?.cgst.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>SGST:</span>
+            <span>₹{totalGST?.sgst.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between font-semibold">
+            <span>Total Amount:</span>
+            <span className="flex items-center">
+              <IndianRupee className="h-4 w-4 text-green-500 mr-1" />
+              ₹{selectedInvoice?.totalAmount.toFixed(2)}
+            </span>
+          </div>
+        </div>
+      </div>
+    </ScrollArea>
+  </DialogContent>
+</Dialog>
+
+
+
       <Toaster />
     </div>
   );
