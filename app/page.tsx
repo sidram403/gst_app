@@ -49,8 +49,11 @@ import {
   HelpCircle,
   Send,
   Bot,
-  Info
+  Info,
+  Menu,
+  Bell
 } from "lucide-react";
+import { CgMenuLeftAlt } from "react-icons/cg";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -82,6 +85,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Toast } from "@/components/ui/toast";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
+import { ToastAction } from "@/components/ui/toast"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Table,
@@ -315,37 +319,119 @@ const SidebarItem = ({
   </Button>
 );
 
+interface DashboardCardProps {
+  title: string
+  amount: string
+  icon: React.ReactNode
+  description: string
+  trend?: string
+  colorScheme: 'blue' | 'green' | 'purple' | 'orange'
+}
+
+const DashboardCard: React.FC<DashboardCardProps> = ({ title, amount, icon, description, trend, colorScheme }) => {
+  const getGradient = () => {
+    switch (colorScheme) {
+      case 'blue':
+        return 'from-blue-400/20 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-800/20'
+      case 'green':
+        return 'from-green-400/20 to-green-600/20 dark:from-green-500/20 dark:to-green-800/20'
+      case 'purple':
+        return 'from-purple-400/20 to-purple-600/20 dark:from-purple-500/20 dark:to-purple-800/20'
+      case 'orange':
+        return 'from-orange-400/20 to-orange-600/20 dark:from-orange-500/20 dark:to-orange-800/20'
+      default:
+        return 'from-gray-400/20 to-gray-600/20 dark:from-gray-500/20 dark:to-gray-800/20'
+    }
+  }
+
+  return (
+    <Card className={`overflow-hidden bg-gradient-to-br ${getGradient()} backdrop-blur-sm border-none shadow-lg`}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium">{title}</CardTitle>
+        <div className={`p-2 rounded-full bg-white/10 backdrop-blur-sm`}>
+          {icon}
+        </div>
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-bold">{amount}</div>
+        <p className="text-xs text-muted-foreground mt-1">
+          {trend && <span className={trend.startsWith('+') ? 'text-green-500' : 'text-red-500'}>{trend} </span>}
+          {description}
+        </p>
+      </CardContent>
+    </Card>
+  )
+}
+
+
+
+
+
 const DashboardContent = ({ transactions, onViewInvoice }: any) => {
   const { toast } = useToast();
 
   const gstMessages = [
-    "GST filing deadline: 30th September 2024 (Quarterly)",
-    "Annual GST filing due: 31st December 2024",
-    "Next GST payment: 10th October 2024",
-    "Quarterly GST audit review: 10th November 2024",
-    "Upcoming GST rate revision: 1st January 2025",
-  ];
+    {
+      message: "GST filing deadline: 30th September 2024 (Quarterly)",
+      icon: Calendar,
+      color: "bg-blue-500 dark:bg-blue-600",
+    },
+    {
+      message: "Annual GST filing due: 31st December 2024",
+      icon: FileText,
+      color: "bg-green-500 dark:bg-green-600",
+    },
+    {
+      message: "Next GST payment: 10th October 2024",
+      icon: CreditCard,
+      color: "bg-purple-500 dark:bg-purple-600",
+    },
+    {
+      message: "Quarterly GST audit review: 10th November 2024",
+      icon: AlertTriangle,
+      color: "bg-yellow-500 dark:bg-yellow-600",
+    },
+    {
+      message: "Upcoming GST rate revision: 1st January 2025",
+      icon: Bell,
+      color: "bg-red-500 dark:bg-red-600",
+    },
+  ]
+  
+
+  const showRandomMessage = () => {
+    const randomMessage = gstMessages[Math.floor(Math.random() * gstMessages.length)]
+    const Icon = randomMessage.icon
+
+    toast({
+      description: (
+        <div className="flex items-center space-x-2">
+          <div className="p-2 bg-white/20 rounded-full">
+            <Icon className="h-5 w-5" />
+          </div>
+          <p className="font-medium">{randomMessage.message}</p>
+        </div>
+      ),
+      duration: 5000,
+      className: `${randomMessage.color} text-white`,
+      // action: (
+      //   <ToastAction altText="Close" className="text-white hover:text-white/80">
+      //     <X className="h-4 w-4" />
+      //   </ToastAction>
+      // ),
+    })
+  }
 
   useEffect(() => {
-    const showRandomMessage = () => {
-      const randomMessage =
-        gstMessages[Math.floor(Math.random() * gstMessages.length)];
-      toast({
-        title: "Important Notice",
-        description: randomMessage,
-        duration: 5000,
-      });
-    };
-
     // Show the first message on mount
-    showRandomMessage();
+    showRandomMessage()
 
-    // Show a random message every 2 minutes (120,000 ms)
-    const intervalId = setInterval(showRandomMessage, 60000);
+    // Show a random message every 1 minute (60,000 ms)
+    const intervalId = setInterval(showRandomMessage, 60000)
 
     // Cleanup the interval on unmount
-    return () => clearInterval(intervalId);
-  }, []);
+    return () => clearInterval(intervalId)
+  }, [])
 
   const totalSalesAmount = transactions
     .filter((t: any) => t.type === "sales")
@@ -359,16 +445,33 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
   const filedReturns = 12; // This should be calculated based on actual data
   const itcBalance = 12234.56; // This should be calculated based on actual data
 
+  interface MicroserviceIconProps {
+    icon: React.ElementType
+    title: string
+    color: string
+  }
+  
+  const MicroserviceIcon: React.FC<MicroserviceIconProps> = ({ icon: Icon, title, color }) => {
+    return (
+      <div className="flex flex-col items-center justify-center p-4 rounded-lg bg-background/50 dark:bg-background/20 backdrop-blur-sm ">
+        <div className={`p-3 rounded-full ${color} text-white mb-3`}>
+          <Icon className="w-6 h-6" />
+        </div>
+        <p className="text-sm font-medium text-foreground text-center">{title}</p>
+      </div>
+    )
+  }
+
   const microservices = [
-    { icon: CheckCircle, title: "GST Verification" },
-    { icon: Calculator, title: "GST Calculator" },
-    { icon: FileText, title: "Invoice Creation" },
-    { icon: Cpu, title: "AI Assistant" },
-    { icon: PieChart, title: "Financial Reports" },
-    { icon: BarChart, title: "Tax Analytics" },
-    { icon: FileSpreadsheet, title: "Expense Tracker" },
-    { icon: BookOpen, title: "Compliance Guide" },
-  ];
+    { icon: CheckCircle, title: "GST Verification", color: "bg-green-500 dark:bg-green-600" },
+    { icon: Calculator, title: "GST Calculator", color: "bg-blue-500 dark:bg-blue-600" },
+    { icon: FileText, title: "Invoice Creation", color: "bg-purple-500 dark:bg-purple-600" },
+    { icon: Cpu, title: "AI Assistant", color: "bg-indigo-500 dark:bg-indigo-600" },
+    { icon: PieChart, title: "Financial Reports", color: "bg-yellow-500 dark:bg-yellow-600" },
+    { icon: BarChart, title: "Tax Analytics", color: "bg-red-500 dark:bg-red-600" },
+    { icon: FileSpreadsheet, title: "Expense Tracker", color: "bg-teal-500 dark:bg-teal-600" },
+    { icon: BookOpen, title: "Compliance Guide", color: "bg-pink-500 dark:bg-pink-600" },
+  ]
   const areaChartData = [
     { name: "Jan", Sales: 4000, Purchases: 2400 },
     { name: "Feb", Sales: 3000, Purchases: 1398 },
@@ -390,65 +493,48 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Sales</CardTitle>
-            <TrendingUp className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ₹{totalSalesAmount.toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              +20.1% from last month
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Purchase</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              ₹{totalPurchasesAmount.toFixed(2)}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              ₹{totalProfit.toFixed(2)} profit
-            </p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Filed Returns</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">9/12</div>
-            <p className="text-xs text-muted-foreground">3 pending</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">ITC Balance</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">₹{itcBalance.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">Available credit</p>
-          </CardContent>
-        </Card>
-      </div>
-      <div className="grid grid-cols-4 gap-4">
-        {microservices.map((service, index) => (
-          <MicroserviceIcon
-            key={index}
-            icon={service.icon}
-            title={service.title}
-          />
-        ))}
-      </div>
+      <DashboardCard
+        title="Sales"
+        amount={`₹${totalSalesAmount.toFixed(2)}`}
+        icon={<TrendingUp className="h-4 w-4 text-blue-500" />}
+        description="from last month"
+        trend="+20.1%"
+        colorScheme="blue"
+      />
+      <DashboardCard
+        title="Purchase"
+        amount={`₹${totalPurchasesAmount.toFixed(2)}`}
+        icon={<DollarSign className="h-4 w-4 text-green-500" />}
+        description={`profit`}
+        trend={`₹${totalProfit.toFixed(2)}`}
+        colorScheme="green"
+      />
+      <DashboardCard
+        title="Filed Returns"
+        amount={`${filedReturns}/12`}
+        icon={<FileText className="h-4 w-4 text-purple-500" />}
+        description="pending"
+        trend="3"
+        colorScheme="purple"
+      />
+      <DashboardCard
+        title="ITC Balance"
+        amount={`₹${itcBalance.toFixed(2)}`}
+        icon={<CreditCard className="h-4 w-4 text-orange-500" />}
+        description="Available credit"
+        colorScheme="orange"
+      />
+    </div>
+    <div className="grid grid-cols-4 sm:grid-cols-4 gap-4">
+      {microservices.map((service, index) => (
+        <MicroserviceIcon
+          key={index}
+          icon={service.icon}
+          title={service.title}
+          color={service.color}
+        />
+      ))}
+    </div>
       <Card className="col-span-full">
         <CardHeader>
           <CardTitle>Overview</CardTitle>
@@ -516,24 +602,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
           </Button>
         </CardFooter>
       </Card>
-      {/* <Card>
-        <CardHeader>
-          <CardTitle className="text-base sm:text-lg">
-            Recent Transactions
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[250px]">
-            {transactions.slice(0, 10).map((transaction: any) => (
-              <InvoiceItem
-                key={transaction.id}
-                transaction={transaction}
-                onView={onViewInvoice}
-              />
-            ))}
-          </ScrollArea>
-        </CardContent>
-      </Card> */}
+      
       
       <Card className="col-span-full md:col-span-2">
         <CardHeader>
@@ -2456,20 +2525,27 @@ export default function EnhancedFinancialApp() {
     };
   }, { cgst: 0, sgst: 0 });
 
+  interface SidebarProps {
+    sidebarOpen: boolean
+    setSidebarOpen: (open: boolean) => void
+    activeItem: string
+    handleNavigation: (item: string) => void
+  }
+  
   const sidebarItems = [
-    { title: "Dashboard", icon: Home },
-    { title: "Billing", icon: FileText },
-    { title: "Sales", icon: Weight },
-    { title: "Purchases", icon: ShoppingCart },
-    { title: "Compare Invoices", icon: GitCompareArrows },
-    { title: "GST Returns", icon: FileCheck },
-    { title: "ITC Management", icon: CreditCard },
-    { title: "GST Verification", icon: CheckCircle },
-    { title: "HSN/SAC Lookup", icon: Search },
-    { title: "AI Bot", icon: MessageSquare },
-    { title: "GST Dashboard", icon: Calculator },
-    { title: "Settings", icon: Settings },
-  ];
+    { title: "Dashboard", icon: Home, color: "text-blue-500 dark:text-blue-400" },
+    { title: "Billing", icon: FileText, color: "text-green-500 dark:text-green-400" },
+    { title: "Sales", icon: Weight, color: "text-yellow-500 dark:text-yellow-400" },
+    { title: "Purchases", icon: ShoppingCart, color: "text-purple-500 dark:text-purple-400" },
+    { title: "Compare Invoices", icon: GitCompareArrows, color: "text-indigo-500 dark:text-indigo-400" },
+    { title: "GST Returns", icon: FileCheck, color: "text-red-500 dark:text-red-400" },
+    { title: "ITC Management", icon: CreditCard, color: "text-pink-500 dark:text-pink-400" },
+    { title: "GST Verification", icon: CheckCircle, color: "text-teal-500 dark:text-teal-400" },
+    { title: "HSN/SAC Lookup", icon: Search, color: "text-orange-500 dark:text-orange-400" },
+    { title: "AI Bot", icon: MessageSquare, color: "text-cyan-500 dark:text-cyan-400" },
+    { title: "GST Dashboard", icon: Calculator, color: "text-amber-500 dark:text-amber-400" },
+    { title: "Settings", icon: Settings, color: "text-gray-500 dark:text-gray-400" },
+  ]
 
   const handleNavigation = (item: any) => {
     setActiveItem(item);
@@ -2559,80 +2635,86 @@ export default function EnhancedFinancialApp() {
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <aside
-          className={`w-64 bg-background border-r transition-all duration-300 ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } md:translate-x-0 fixed md:static top-0 left-0 bottom-0 z-50`}
-        >
-          <div className="flex flex-col h-full">
-            <div className="p-4">
-              <div className="flex items-center justify-between mb-6">
-                <ArrowLeft
-                  onClick={() => setSidebarOpen(false)}
-                  className="h-7 w-7 md:hidden"
-                />
-                <div className="flex items-center flex-1 ml-4">
-                  <Avatar>
-                    <AvatarImage src="https://github.com/shadcn.png" />
-                    <AvatarFallback>CN</AvatarFallback>
-                  </Avatar>
-                  <h1 className="text-xl md:text-2xl font-bold ml-2">FinApp</h1>
-                </div>
-              </div>
-            </div>
-            <ScrollArea className="flex-1 w-full">
-              <div className="px-4">
-                <nav className="space-y-2">
-                  {sidebarItems.map((item) => (
-                    <Button
-                      key={item.title}
-                      variant="ghost"
-                      className={`w-full justify-start ${
-                        activeItem === item.title
-                          ? "bg-primary/10 text-primary"
-                          : ""
-                      }`}
-                      onClick={() => handleNavigation(item.title)}
-                    >
-                      <item.icon className="mr-2 h-4 w-4" />
-                      {item.title}
-                    </Button>
-                  ))}
-                </nav>
-              </div>
-            </ScrollArea>
-            <div className="p-4">
-              <Button
-                variant="ghost"
-                className="w-full justify-start"
-                onClick={() => {
-                  /* Handle logout */
-                }}
-              >
-                <LogOut className="mr-2 h-4 w-4" />
-                Logout
-              </Button>
+      className={`w-64 bg-background/95 backdrop-blur-sm border-r transition-all duration-300 ${
+        sidebarOpen ? "translate-x-0" : "-translate-x-full"
+      } fixed top-0 left-0 bottom-0 z-50 shadow-lg`}
+    >
+      <div className="flex flex-col h-full">
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-6">
+            <ArrowLeft
+              onClick={() => setSidebarOpen(false)}
+              className="h-7 w-7 text-foreground/80 hover:text-foreground transition-colors"
+            />
+            <div className="flex items-center flex-1 ml-4">
+              <Avatar>
+                <AvatarImage src="https://github.com/shadcn.png" />
+                <AvatarFallback>CN</AvatarFallback>
+              </Avatar>
+              <h1 className="text-xl font-bold ml-2 text-foreground">FinApp</h1>
             </div>
           </div>
-        </aside>
+        </div>
+        <ScrollArea className="flex-1 w-full">
+          <div className="px-4">
+            <nav className="space-y-1">
+              {sidebarItems.map((item) => (
+                <Button
+                  key={item.title}
+                  variant="ghost"
+                  className={`w-full justify-start py-2 ${
+                    activeItem === item.title
+                      ? "bg-primary/10 text-primary"
+                      : "hover:bg-primary/5"
+                  }`}
+                  onClick={() => handleNavigation(item.title)}
+                >
+                  <div className={`mr-3 p-1 rounded-md ${item.color} bg-opacity-20`}>
+                    <item.icon className={`h-5 w-5 ${item.color}`} />
+                  </div>
+                  <span className="text-sm font-medium text-foreground">{item.title}</span>
+                </Button>
+              ))}
+            </nav>
+          </div>
+        </ScrollArea>
+        <div className="p-4">
+          <Button
+            variant="ghost"
+            className="w-full justify-start py-2 hover:bg-primary/5"
+            onClick={() => {
+              /* Handle logout */
+            }}
+          >
+            <div className="mr-3 p-1 rounded-md text-red-500 dark:text-red-400 bg-opacity-20">
+              <LogOut className="h-5 w-5" />
+            </div>
+            <span className="text-sm font-medium text-foreground">Logout</span>
+          </Button>
+        </div>
+      </div>
+    </aside>
 
         {/* Main content */}
         <div className="flex-1 flex flex-col overflow-hidden">
-          <header className="bg-background border-b p-4 flex justify-between items-center sticky">
+          <header className="bg-background/30 backdrop-blur-sm p-2 flex justify-between items-center sticky top-0 z-10">
             <Button
               variant="ghost"
               size="icon"
               className="md:hidden"
               onClick={() => setSidebarOpen(!sidebarOpen)}
             >
-              {/* <Menu className="h-6 w-6" /> */}
-              <Avatar>
-                {/* <AvatarImage src="https://xsgames.co/randomusers/avatar.php?g=male" /> */}
-                <AvatarImage src="https://icon-library.com/images/generic-user-icon/generic-user-icon-13.jpg" />
-                <AvatarFallback>CN</AvatarFallback>
-              </Avatar>
+              <CgMenuLeftAlt className="h-8 w-8" />
+              
             </Button>
             {/* <h2 className="text-lg font-semibold">FinApp</h2> */}
             <div>
+            <Button variant="ghost" size="icon">
+                <Search className="h-7 w-7" />
+              </Button>
+              <Button variant="ghost" size="icon">
+                <BellRing className="h-7 w-7" />
+              </Button>
               <Button variant="ghost" size="icon" onClick={toggleDarkMode}>
                 {darkMode ? (
                   <Sun className="h-7 w-7" />
@@ -2640,12 +2722,7 @@ export default function EnhancedFinancialApp() {
                   <Moon className="h-7 w-7" />
                 )}
               </Button>
-              <Button variant="ghost" size="icon">
-                <Search className="h-7 w-7" />
-              </Button>
-              <Button variant="ghost" size="icon">
-                <BellRing className="h-7 w-7" />
-              </Button>
+              
             </div>
           </header>
 
