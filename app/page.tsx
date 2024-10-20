@@ -51,7 +51,13 @@ import {
   Bot,
   Info,
   Menu,
-  Bell
+  Bell,
+  ArrowRight,
+  ArrowDownLeft,
+  ArrowUpRight,
+  Building2,
+  ClipboardList,
+  Briefcase
 } from "lucide-react";
 import { CgMenuLeftAlt } from "react-icons/cg";
 import { Button } from "@/components/ui/button";
@@ -233,43 +239,101 @@ const MicroserviceIcon = ({ icon: Icon, title }: MicroserviceIconProps) => (
   </div>
 );
 
-const InvoiceItem = ({ transaction, onView }: InvoiceItemProps) => (
-  // <div className="flex justify-between items-center py-2 border-b last:border-b-0">
-  //   <div>
-  //     <Badge variant={transaction.type === "sales" ? "default" : "secondary"}>
-  //       {transaction.type}
-  //     </Badge>
-  //     <p className="text-xs mt-1">{transaction.date}</p>
-  //   </div>
-  //   <div className="flex items-center">
-  //     <span className="text-sm font-semibold mr-2">
-  //       ₹{transaction.totalAmount.toFixed(2)}
-  //     </span>
-  //     <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
-  //       <FileText className="h-4 w-4" />
-  //     </Button>
-  //   </div>
+const sampleTransactions: Transaction[] = [
+  {
+    id: "S001",
+    type: "sales",
+    date: "2024-10-15",
+    invoiceNum: "INV-001",
+    partyName: "TechCorp Solutions",
+    gstinNum: "29ABCDE1234F1Z5",
+    items: [{ description: "IT Services", quantity: "1", unitPrice: 50000, totalPrice: 59000, gstPercentage: 18 }],
+    totalAmountWithoutGST: 50000,
+    gst: { cgst: 4500, sgst: 4500 },
+    totalAmount: 59000
+  },
+  {
+    id: "P001",
+    type: "purchase",
+    date: "2024-10-14",
+    invoiceNum: "BILL-001",
+    partyName: "Office Supplies Co.",
+    gstinNum: "27FGHIJ5678K2Y6",
+    items: [{ description: "Office Furniture", quantity: "5", unitPrice: 10000, totalPrice: 59000, gstPercentage: 18 }],
+    totalAmountWithoutGST: 50000,
+    gst: { cgst: 4500, sgst: 4500 },
+    totalAmount: 59000
+  },
+  {
+    id: "S002",
+    type: "sales",
+    date: "2024-10-13",
+    invoiceNum: "INV-002",
+    partyName: "Global Traders Inc.",
+    gstinNum: "03KLMNO9012P3Q7",
+    items: [{ description: "Export Goods", quantity: "100", unitPrice: 1000, totalPrice: 118000, gstPercentage: 18 }],
+    totalAmountWithoutGST: 100000,
+    gst: { cgst: 9000, sgst: 9000 },
+    totalAmount: 118000
+  },
+  {
+    id: "P002",
+    type: "purchase",
+    date: "2024-10-12",
+    invoiceNum: "BILL-002",
+    partyName: "Tech Hardware Ltd.",
+    gstinNum: "19PQRST3456U4V8",
+    items: [{ description: "Computer Equipment", quantity: "10", unitPrice: 25000, totalPrice: 295000, gstPercentage: 18 }],
+    totalAmountWithoutGST: 250000,
+    gst: { cgst: 22500, sgst: 22500 },
+    totalAmount: 295000
+  },
+  {
+    id: "S003",
+    type: "sales",
+    date: "2024-10-11",
+    invoiceNum: "INV-003",
+    partyName: "Local Retail Store",
+    gstinNum: "08UVWXY7890Z5A9",
+    items: [{ description: "Consumer Goods", quantity: "50", unitPrice: 500, totalPrice: 29500, gstPercentage: 18 }],
+    totalAmountWithoutGST: 25000,
+    gst: { cgst: 2250, sgst: 2250 },
+    totalAmount: 29500
+  }
+]
 
-  // </div>
-  <div key={transaction.id} className="flex items-center mb-4 last:mb-0">
-    <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
-      <Eye className="h-4 w-4" />
-    </Button>
-    <div className="ml-4 space-y-1">
-      <p className="text-sm font-medium leading-none">
-        {transaction.partyName}
-      </p>
-      <p className="text-sm text-muted-foreground">
-        {transaction.type === "sales" ? "Invoice" : "Bill"} #
-        {transaction.invoiceNum}
-      </p>
+
+const InvoiceItem: React.FC<InvoiceItemProps> = ({ transaction, onView }) => (
+  <div className="flex items-center justify-between py-3 border-b last:border-b-0">
+    <div className="flex items-center space-x-4">
+      <div className={`p-2 rounded-full ${transaction.type === 'sales' ? 'bg-green-100 dark:bg-green-900' : 'bg-red-100 dark:bg-red-900'}`}>
+        {transaction.type === 'sales' ? (
+          <ArrowUpRight className="h-5 w-5 text-green-600 dark:text-green-400" />
+        ) : (
+          <ArrowDownLeft className="h-5 w-5 text-red-600 dark:text-red-400" />
+        )}
+      </div>
+      <div>
+        <p className="text-sm font-medium">{transaction.partyName}</p>
+        <p className="text-xs text-muted-foreground">
+          {transaction.type === "sales" ? "Invoice" : "Bill"} #{transaction.invoiceNum}
+        </p>
+      </div>
     </div>
-    <div className="ml-auto font-medium">
-      {transaction.type === "sales" ? "+" : "-"}₹
-      {transaction.totalAmount.toFixed(2)}
+    <div className="flex items-center space-x-4">
+      <div className="text-right">
+        <p className={`text-sm font-medium ${transaction.type === 'sales' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+          {transaction.type === "sales" ? "+" : "-"}₹{transaction.totalAmount.toFixed(2)}
+        </p>
+        <p className="text-xs text-muted-foreground">{transaction.date}</p>
+      </div>
+      <Button variant="ghost" size="icon" onClick={() => onView(transaction)}>
+        <Eye className="h-4 w-4" />
+      </Button>
     </div>
   </div>
-);
+)
+
 
 const InvoiceCreatedItem = ({
   transaction,
@@ -277,24 +341,28 @@ const InvoiceCreatedItem = ({
   onSelect,
   isSelected,
 }: InvoiceCreatedItemProps) => (
-  <div className="flex justify-between items-center py-2 border-b last:border-b-0">
-    <div className="flex items-center space-x-2">
+  <div className="flex items-center justify-between py-3 px-4 border-b last:border-b-0 hover:bg-muted/50 transition-colors">
+    <div className="flex items-center space-x-4">
       <Checkbox
         checked={isSelected}
         onCheckedChange={() => onSelect(transaction.id)}
       />
+      
       <div>
-        <Badge variant={transaction.type === "sales" ? "default" : "secondary"}>
-          {transaction.type}
-        </Badge>
-        <p className="text-xs mt-1">{transaction.date}</p>
+        <p className="text-sm font-medium">{transaction.partyName}</p>
+        <p className="text-xs text-muted-foreground">
+          {transaction.type === "sales" ? "Invoice" : "Bill"} #{transaction.invoiceNum}
+        </p>
       </div>
     </div>
-    <div className="flex items-center space-x-2">
-      <span className="text-sm font-semibold">
-        ₹{transaction.totalAmount.toFixed(2)}
-      </span>
-      <Button variant="ghost" size="sm" onClick={() => onView(transaction)}>
+    <div className="flex items-center space-x-4">
+      <div className="text-right">
+        <p className={`text-sm font-medium ${transaction.type === 'sales' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+          {transaction.type === "sales" ? "+" : "-"}₹{transaction.totalAmount.toFixed(2)}
+        </p>
+        <p className="text-xs text-muted-foreground">{transaction.date}</p>
+      </div>
+      <Button variant="ghost" size="icon" onClick={() => onView(transaction)}>
         <Eye className="h-4 w-4" />
       </Button>
     </div>
@@ -332,31 +400,34 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, amount, icon, desc
   const getGradient = () => {
     switch (colorScheme) {
       case 'blue':
-        return 'from-blue-400/20 to-blue-600/20 dark:from-blue-500/20 dark:to-blue-800/20'
+        return 'from-blue-500 to-blue-600'
       case 'green':
-        return 'from-green-400/20 to-green-600/20 dark:from-green-500/20 dark:to-green-800/20'
+        return 'from-green-500 to-green-600'
       case 'purple':
-        return 'from-purple-400/20 to-purple-600/20 dark:from-purple-500/20 dark:to-purple-800/20'
+        return 'from-purple-500 to-purple-600'
       case 'orange':
-        return 'from-orange-400/20 to-orange-600/20 dark:from-orange-500/20 dark:to-orange-800/20'
+        return 'from-orange-500 to-orange-600'
       default:
-        return 'from-gray-400/20 to-gray-600/20 dark:from-gray-500/20 dark:to-gray-800/20'
+        return 'from-gray-500 to-gray-600'
     }
   }
 
   return (
-    <Card className={`overflow-hidden bg-gradient-to-br ${getGradient()} backdrop-blur-sm border-none shadow-lg`}>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+    <Card className={`bg-gradient-to-br ${getGradient()} text-white overflow-hidden relative`}>
+      <div className="absolute inset-0 bg-white opacity-10 transform rotate-12 translate-x-12 -translate-y-12 rounded-full"></div>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4">
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <div className={`p-2 rounded-full bg-white/10 backdrop-blur-sm`}>
-          {icon}
-        </div>
+        <div className="p-2 bg-white/20 rounded-full">{icon}</div>
       </CardHeader>
-      <CardContent>
+      <CardContent className="p-4 pt-0">
         <div className="text-2xl font-bold">{amount}</div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {trend && <span className={trend.startsWith('+') ? 'text-green-500' : 'text-red-500'}>{trend} </span>}
-          {description}
+        <p className="text-xs mt-1 flex items-center justify-between">
+          <span className="opacity-80">{description}</span>
+          {trend && (
+            <span className="font-semibold">
+              {trend.startsWith('-') || (trend.startsWith('₹-'))  ? '↓' : '↑'} {trend}
+            </span>
+          )}
         </p>
       </CardContent>
     </Card>
@@ -442,7 +513,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
     .filter((t: any) => t.type === "purchase")
     .reduce((sum: number, t: any) => sum + t.totalAmount, 0);
   const totalProfit = totalSalesAmount - totalPurchasesAmount;
-  const filedReturns = 12; // This should be calculated based on actual data
+  const filedReturns = 9; // This should be calculated based on actual data
   const itcBalance = 12234.56; // This should be calculated based on actual data
 
   interface MicroserviceIconProps {
@@ -492,39 +563,39 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <DashboardCard
-        title="Sales"
-        amount={`₹${totalSalesAmount.toFixed(2)}`}
-        icon={<TrendingUp className="h-4 w-4 text-blue-500" />}
-        description="from last month"
-        trend="+20.1%"
-        colorScheme="blue"
-      />
-      <DashboardCard
-        title="Purchase"
-        amount={`₹${totalPurchasesAmount.toFixed(2)}`}
-        icon={<DollarSign className="h-4 w-4 text-green-500" />}
-        description={`profit`}
-        trend={`₹${totalProfit.toFixed(2)}`}
-        colorScheme="green"
-      />
-      <DashboardCard
-        title="Filed Returns"
-        amount={`${filedReturns}/12`}
-        icon={<FileText className="h-4 w-4 text-purple-500" />}
-        description="pending"
-        trend="3"
-        colorScheme="purple"
-      />
-      <DashboardCard
-        title="ITC Balance"
-        amount={`₹${itcBalance.toFixed(2)}`}
-        icon={<CreditCard className="h-4 w-4 text-orange-500" />}
-        description="Available credit"
-        colorScheme="orange"
-      />
-    </div>
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <DashboardCard
+          title="Sales"
+          amount={`₹${totalSalesAmount.toFixed(2)}`}
+          icon={<TrendingUp className="h-5 w-5" />}
+          description="from last month"
+          trend="+20.1%"
+          colorScheme="blue"
+        />
+        <DashboardCard
+          title="Purchase"
+          amount={`₹${totalPurchasesAmount.toFixed(2)}`}
+          icon={<DollarSign className="h-5 w-5" />}
+          description={`Profit`}
+          trend={`₹${totalProfit.toFixed(2)}`}
+          colorScheme="green"
+        />
+        <DashboardCard
+          title="Filed Returns"
+          amount={`${filedReturns}/12`}
+          icon={<FileText className="h-5 w-5" />}
+          description="pending"
+          trend="3"
+          colorScheme="purple"
+        />
+        <DashboardCard
+          title="ITC Balance"
+          amount={`₹${itcBalance.toFixed(2)}`}
+          icon={<CreditCard className="h-5 w-5" />}
+          description="Available credit"
+          colorScheme="orange"
+        />
+      </div>
     <div className="grid grid-cols-4 sm:grid-cols-4 gap-4">
       {microservices.map((service, index) => (
         <MicroserviceIcon
@@ -539,7 +610,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
         <CardHeader>
           <CardTitle>Overview</CardTitle>
         </CardHeader>
-        <CardContent className="pl-2">
+        <CardContent className="pl-2 pr-0">
           <ResponsiveContainer width="100%" height={300}>
             <AreaChart
               data={areaChartData}
@@ -578,30 +649,34 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
         </CardContent>
       </Card>
       <Card className="col-span-full md:col-span-2">
-        <CardHeader>
-          <CardTitle>Recent Transactions</CardTitle>
-          <CardDescription>
-            You have {transactions.length} total transactions
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[300px]">
-            {transactions.slice(0, 5).map((transaction: any) => (
-              <InvoiceItem
-                key={transaction.id}
-                transaction={transaction}
-                onView={onViewInvoice}
-              />
-            ))}
-          </ScrollArea>
-        </CardContent>
-        <CardFooter>
-          <Button variant="outline" className="w-full">
-            <ArrowRightIcon className="mr-2 h-4 w-4" />
-            View All Transactions
-          </Button>
-        </CardFooter>
-      </Card>
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Recent Transactions</span>
+          <DollarSign className="h-5 w-5 text-muted-foreground" />
+        </CardTitle>
+        <CardDescription>
+          You have {transactions.length===0 ? sampleTransactions.length : transactions.length} total transactions
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-2">
+        <ScrollArea className="h-[300px] pr-0">
+          {(transactions.length===0 ? sampleTransactions : transactions).map((transaction :any) => (
+            <InvoiceItem
+              key={transaction.id}
+              transaction={transaction}
+              onView={onViewInvoice}
+            />
+          ))}
+        </ScrollArea>
+      </CardContent>
+      <CardFooter>
+        <Button variant="outline" className="w-full bg-blue-500 text-white dark:bg-blue-600">
+          <ArrowRight className="mr-2 h-4 w-4" />
+          View All Transactions
+        </Button>
+      </CardFooter>
+    </Card>
+  
       
       
       <Card className="col-span-full md:col-span-2">
@@ -610,7 +685,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
           <CardDescription>Current month's tax liability</CardDescription>
         </CardHeader>
         <CardContent>
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={200}>
             <RePieChart>
               <Pie
                 data={pieChartData}
@@ -620,6 +695,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
+                
               >
                 {pieChartData.map((entry, index) => (
                   <Cell
@@ -714,6 +790,7 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
     ]);
   };
 
+  const { toast } = useToast();
   const handleRemoveItem = (index: number) => {
     setItems(items.filter((_, i) => i !== index));
   };
@@ -778,7 +855,17 @@ const BillingScreen = ({ onSave }: BillingScreenProps) => {
     };
 
     onSave(entryType, transaction);
+    toast({
+      title: "Transaction Saved",
+      description: `${entryType.charAt(0).toUpperCase() + entryType.slice(1)} entry has been saved successfully.`,
+    });
+
+    // Reset form
+    setItems([{ description: "", quantity: "1", unitPrice: 0, totalPrice: 0, gstPercentage: 18 }]);
+    (e.target as HTMLFormElement).reset();
   };
+
+
 
   return (
     <div className="space-y-4">
@@ -1261,83 +1348,98 @@ const GSTDashboardScreen = () => {
   <div className="space-y-4">
     <h2 className="text-xl sm:text-2xl font-semibold">GST Dashboard</h2>
     {/* <Input placeholder="Search GSTIN" className="text-sm" /> */}
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Company Name</CardTitle>
-        </CardHeader>
-        <CardContent className="text-xl font-bold">
-          XYZ Enterprises Pvt Ltd
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">GSTIN Status</CardTitle>
-        </CardHeader>
-        <CardContent className="text-xl font-bold">Active</CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">
-            Registration Date
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="text-xl font-bold">01/04/2019</CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-sm font-medium">Business Type</CardTitle>
-        </CardHeader>
-        <CardContent className="text-xl font-bold">
-          Private Limited Company
-        </CardContent>
-      </Card>
-    </div>
-    <Card>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white overflow-hidden relative">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium opacity-80">Company Name</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-xl font-bold">XYZ Enterprises Pvt Ltd</div>
+          </CardContent>
+          <Building2 className="absolute right-4 bottom-4 h-16 w-16 opacity-20" />
+        </Card>
+        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white overflow-hidden relative">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium opacity-80">Business Type</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-xl font-bold">Private Limited Company</div>
+          </CardContent>
+          <Briefcase className="absolute right-4 bottom-4 h-16 w-16 opacity-20" />
+        </Card>
+        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white overflow-hidden relative">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium opacity-80">Registration Date</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-xl font-bold">01/04/2019</div>
+          </CardContent>
+          <ClipboardList className="absolute right-4 bottom-4 h-16 w-16 opacity-20" />
+        </Card>
+        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white overflow-hidden relative">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium opacity-80">GSTIN Status</CardTitle>
+          </CardHeader>
+          <CardContent className="pt-0">
+            <div className="text-xl font-bold">Active</div>
+          </CardContent>
+          <CheckCircle className="absolute right-4 bottom-4 h-16 w-16 opacity-20" />
+        </Card>
+        
+        
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card className="bg-gradient-to-br from-yellow-400 to-yellow-500 text-white overflow-hidden relative">
+          <div className="absolute inset-0 bg-white opacity-10 transform rotate-12 translate-x-12 -translate-y-12 rounded-full"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total GST Collected</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <DollarSign className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹45,231.89</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs opacity-80">
               <ArrowUpIcon className="inline mr-1" />
               20.1% from last month
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-cyan-400 to-cyan-500 text-white overflow-hidden relative">
+          <div className="absolute inset-0 bg-white opacity-10 transform -rotate-12 -translate-x-12 translate-y-12 rounded-full"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Input Tax Credit</CardTitle>
-            <CreditCard className="h-4 w-4 text-muted-foreground" />
+            <CreditCard className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹12,234.50</div>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-xs opacity-80">
               <ArrowUpIcon className="inline mr-1" />
               4.3% from last month
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-red-400 to-red-500 text-white overflow-hidden relative">
+          <div className="absolute inset-0 bg-white opacity-10 transform rotate-45 translate-x-12 translate-y-12 rounded-full"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pending Returns</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <FileText className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">2</div>
-            <p className="text-xs text-muted-foreground">GSTR-1 and GSTR-3B</p>
+            <p className="text-xs opacity-80">GSTR-1 and GSTR-3B</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-gradient-to-br from-emerald-400 to-emerald-500 text-white overflow-hidden relative">
+          <div className="absolute inset-0 bg-white opacity-10 transform -rotate-45 -translate-x-12 -translate-y-12 rounded-full"></div>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Next Due Date</CardTitle>
+            <CalendarIcon className="h-4 w-4" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">11 Jun</div>
-            <p className="text-xs text-muted-foreground">GSTR-1 for May</p>
+            <p className="text-xs opacity-80">GSTR-1 for May</p>
           </CardContent>
         </Card>
+      </div>
         <div className="grid gap-4 md:grid-cols-2">
         <Card className="col-span-1">
           <CardHeader>
@@ -1345,7 +1447,7 @@ const GSTDashboardScreen = () => {
             <CardDescription>Current month's GST composition</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={200}>
               <RePieChart>
                 <Pie
                   data={pieChartData}
@@ -1551,27 +1653,31 @@ const TransactionList = ({
   type,
   onViewInvoice,
 }: TransactionListProps) => {
-  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+  const [selectedInvoices, setSelectedInvoices] = useState<string[]>([])
+  const [searchTerm, setSearchTerm] = useState("")
 
   const handleSelect = (id: string) => {
     setSelectedInvoices((prev) =>
       prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]
-    );
-  };
-
-  const handleViewSelected = () => {
-    // Implement view functionality for selected invoices
-  };
+    )
+  }
 
   const handleDownloadSelected = () => {
     // Implement download functionality for selected invoices
-  };
+    console.log("Downloading selected invoices:", selectedInvoices)
+  }
 
   const handleImport = () => {
     // Implement import functionality
-  };
+    console.log("Importing invoices")
+  }
 
-  const filteredTransactions = transactions.filter((t) => t.type === type);
+  const filteredTransactions = transactions
+    .filter((t) => t.type === type)
+    .filter((t) =>
+      t.partyName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      t.invoiceNum.toLowerCase().includes(searchTerm.toLowerCase())
+    )
 
   return (
     <div className="space-y-4">
@@ -1591,7 +1697,16 @@ const TransactionList = ({
           </Button>
         </div>
       </div>
-      <ScrollArea className="h-[400px] border rounded-md p-2">
+      <div className="flex items-center space-x-2 mb-4">
+        <Search className="h-4 w-4 text-muted-foreground" />
+        <Input
+          placeholder="Search invoices..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1"
+        />
+      </div>
+      <ScrollArea className="h-[400px] border rounded-md py-2">
         {filteredTransactions.length > 0 ? (
           filteredTransactions.map((transaction) => (
             <InvoiceCreatedItem
@@ -1603,7 +1718,6 @@ const TransactionList = ({
             />
           ))
         ) : (
-          // Message when no transactions of the selected type are found
           <div className="text-center text-gray-500">
             No {type === "sales" ? "sales" : "purchases"} transactions
             available.
@@ -1611,7 +1725,7 @@ const TransactionList = ({
         )}
       </ScrollArea>
     </div>
-  );
+  )
 };
 
 const CompareInvoicesScreen = ({ transactions }: TransactionForCompare) => {
@@ -2635,12 +2749,10 @@ export default function EnhancedFinancialApp() {
       <div className="flex h-screen overflow-hidden">
         {/* Sidebar */}
         <aside
-      className={`w-64 bg-background/95 backdrop-blur-sm border-r transition-all duration-300 ${
-        sidebarOpen ? "translate-x-0" : "-translate-x-full"
-      } fixed top-0 left-0 bottom-0 z-50 shadow-lg`}
+      className={`w-64 bg-background border-r transition-all duration-300 ${ sidebarOpen ? "translate-x-0" : "-translate-x-full" } md:translate-x-0 fixed md:static top-0 left-0 bottom-0 z-50`}
     >
       <div className="flex flex-col h-full">
-        <div className="p-4">
+        <div className="p-4 pb-0">
           <div className="flex items-center justify-between mb-6">
             <ArrowLeft
               onClick={() => setSidebarOpen(false)}
