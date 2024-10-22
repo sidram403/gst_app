@@ -57,7 +57,9 @@ import {
   ArrowUpRight,
   Building2,
   ClipboardList,
-  Briefcase
+  Briefcase,
+  Hash,
+  ChevronRight
 } from "lucide-react";
 import { CgMenuLeftAlt } from "react-icons/cg";
 import { Button } from "@/components/ui/button";
@@ -130,6 +132,13 @@ import {
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { GSTResources } from "@/components/gst-resources";
+
 
 type InvoiceItems = {
   description: string;
@@ -444,7 +453,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
   const gstMessages = [
     {
       message: "GST filing deadline: 30th September 2024 (Quarterly)",
-      icon: Calendar,
+      icon: CalendarIcon,
       color: "bg-blue-500 dark:bg-blue-600",
     },
     {
@@ -2613,6 +2622,9 @@ const GSTVerification =() => {
 
 
 
+
+
+
 export default function EnhancedFinancialApp() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -2657,6 +2669,7 @@ export default function EnhancedFinancialApp() {
     { title: "GST Verification", icon: CheckCircle, color: "text-teal-500 dark:text-teal-400" },
     { title: "HSN/SAC Lookup", icon: Search, color: "text-orange-500 dark:text-orange-400" },
     { title: "AI Bot", icon: MessageSquare, color: "text-cyan-500 dark:text-cyan-400" },
+    { title: "Resources", icon: BookOpen, color: "text-emerald-500 dark:text-emerald-400" },
     { title: "GST Dashboard", icon: Calculator, color: "text-amber-500 dark:text-amber-400" },
     { title: "Settings", icon: Settings, color: "text-gray-500 dark:text-gray-400" },
   ]
@@ -2734,6 +2747,8 @@ export default function EnhancedFinancialApp() {
         return <GSTVerification />;
       case "HSN/SAC Lookup":
         return <HSNSACLookup />;
+      case "Resources":
+          return <GSTResources />;  
 
       default:
         return null;
