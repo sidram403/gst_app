@@ -59,6 +59,7 @@ import {
   ClipboardList,
   Briefcase,
   Hash,
+  AlertCircle,
   ChevronRight
 } from "lucide-react";
 import { CgMenuLeftAlt } from "react-icons/cg";
@@ -138,106 +139,9 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import { GSTResources } from "@/components/gst-resources";
+import { BillingScreenProps, DashboardCardProps, GstReturnsType, InvoiceCreatedItemProps, InvoiceItemProps, InvoiceItems, ITCEntry, ITCEntryDialogProps, MicroserviceIconProps, SidebarItemProps, Transaction, TransactionForCompare, TransactionListProps } from "@/types";
 
 
-type InvoiceItems = {
-  description: string;
-  quantity: string;
-  unitPrice: number;
-  totalPrice: number;
-  gstPercentage: number;
-
-};
-
-type Transaction = {
-  id: string;
-  type: "sales" | "purchase";
-  date: string;
-  invoiceNum: string;
-  partyName: string;
-  gstinNum: string;
-  items: InvoiceItems[];
-  totalAmountWithoutGST: number;
-  gst: {
-    cgst: number;
-    sgst: number;
-  };
-  totalAmount: number;
-};
-
-interface MicroserviceIconProps {
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  title: string;
-}
-
-interface TransactionProps extends Omit<Transaction, "id" | "type"> {
-  id: string;
-  type: "sales" | "purchase";
-  date: string;
-  totalAmount: number;
-}
-
-interface InvoiceCreatedItemProps {
-  transaction: TransactionProps;
-  onView: (transaction: TransactionProps) => void;
-  onSelect: (id: string) => void;
-  isSelected: boolean;
-}
-
-interface InvoiceItemProps {
-  transaction: TransactionProps;
-  onView: (transaction: TransactionProps) => void;
-}
-
-interface SidebarItemProps {
-  title: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-  isActive: boolean;
-  onClick: () => void;
-}
-
-type BillingScreenProps = {
-  onSave: (
-    type: "sales" | "purchase",
-    data: Omit<Transaction, "id" | "type">
-  ) => void;
-};
-
-interface TransactionListProps {
-  transactions: TransactionProps[];
-  type: string;
-  onViewInvoice: (transaction: TransactionProps) => void;
-}
-
-interface TransactionForCompare {
-  transactions: TransactionProps[];
-}
-
-type GstReturnsType = {
-  totalTaxableValue: string;
-  totalCGST: string;
-  totalSGST: string;
-  totalIGST: string;
-  b2bInvoices: string[];
-  b2cInvoices: string[];
-};
-
-type ITCEntry = {
-  id: string;
-  description: string;
-  amount: number;
-  category: string;
-  date: string;
-  invoiceNumber: string;
-};
-
-type ITCEntryDialogProps = {
-  isOpen: boolean;
-  onClose: () => void;
-  onSave: (entry: ITCEntry | Omit<ITCEntry, "id">) => void;
-  title: string;
-  initialData?: ITCEntry | null;
-};
 
 
 
@@ -396,14 +300,7 @@ const SidebarItem = ({
   </Button>
 );
 
-interface DashboardCardProps {
-  title: string
-  amount: string
-  icon: React.ReactNode
-  description: string
-  trend?: string
-  colorScheme: 'blue' | 'green' | 'purple' | 'orange'
-}
+
 
 const DashboardCard: React.FC<DashboardCardProps> = ({ title, amount, icon, description, trend, colorScheme }) => {
   const getGradient = () => {
@@ -428,17 +325,17 @@ const DashboardCard: React.FC<DashboardCardProps> = ({ title, amount, icon, desc
         <CardTitle className="text-sm font-medium">{title}</CardTitle>
         <div className="p-2 bg-white/20 rounded-full">{icon}</div>
       </CardHeader>
+
       <CardContent className="p-4 pt-0">
         <div className="text-2xl font-bold">{amount}</div>
         <p className="text-xs mt-1 flex items-center justify-between">
-          <span className="opacity-80">{description}</span>
-          {trend && (
-            <span className="font-semibold">
-              {trend.startsWith('-') || (trend.startsWith('₹-'))  ? '↓' : '↑'} {trend}
-            </span>
-          )}
+        <div className="flex items-center gap-1 mt-2">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                  <span className="text-sm text-white">{trend}</span>
+        </div>
         </p>
       </CardContent>
+      
     </Card>
   )
 }
@@ -525,11 +422,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
   const filedReturns = 9; // This should be calculated based on actual data
   const itcBalance = 12234.56; // This should be calculated based on actual data
 
-  interface MicroserviceIconProps {
-    icon: React.ElementType
-    title: string
-    color: string
-  }
+  
   
   const MicroserviceIcon: React.FC<MicroserviceIconProps> = ({ icon: Icon, title, color }) => {
     return (
@@ -572,9 +465,25 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
 
   return (
     <div className="space-y-4">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex justify-between items-center w-full sm:justify-normal sm:w-[50%] sm:flex-row gap-4">
+          <Button className="flex items-center gap-2 bg-blue-500 text-white">
+            <Download className="w-4 h-4" />
+            Export Data
+          </Button>
+          <Button variant="outline" className="flex items-center gap-2">
+            <Filter className="w-4 h-4" />
+            Filter
+          </Button>
+        </div>
+        <div className="flex items-center gap-2 bg-yellow-50 text-yellow-700 px-4 py-2 rounded-lg w-full sm:w-auto">
+          <AlertCircle className="w-4 h-4" />
+          <span className="text-sm">Next Filing Due: 20th Oct</span>
+        </div>
+      </div>
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <DashboardCard
-          title="Sales"
+          title="Monthly Sales"
           amount={`₹${totalSalesAmount.toFixed(2)}`}
           icon={<TrendingUp className="h-5 w-5" />}
           description="from last month"
@@ -582,11 +491,11 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
           colorScheme="blue"
         />
         <DashboardCard
-          title="Purchase"
+          title="Monthly Purchase"
           amount={`₹${totalPurchasesAmount.toFixed(2)}`}
           icon={<DollarSign className="h-5 w-5" />}
           description={`Profit`}
-          trend={`₹${totalProfit.toFixed(2)}`}
+          trend={`Profit  ₹${totalProfit.toFixed(2)}`}
           colorScheme="green"
         />
         <DashboardCard
@@ -594,7 +503,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
           amount={`${filedReturns}/12`}
           icon={<FileText className="h-5 w-5" />}
           description="pending"
-          trend="3"
+          trend="Pending 3"
           colorScheme="purple"
         />
         <DashboardCard
@@ -602,6 +511,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
           amount={`₹${itcBalance.toFixed(2)}`}
           icon={<CreditCard className="h-5 w-5" />}
           description="Available credit"
+          trend="Available credit"
           colorScheme="orange"
         />
       </div>
@@ -615,7 +525,37 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
         />
       ))}
     </div>
-      <Card className="col-span-full">
+     
+      <Card className="col-span-full md:col-span-2">
+      <CardHeader>
+        <CardTitle className="flex items-center justify-between">
+          <span>Recent Transactions</span>
+          <DollarSign className="h-5 w-5 text-muted-foreground" />
+        </CardTitle>
+        <CardDescription>
+          You have {transactions.length===0 ? sampleTransactions.length : transactions.length} total transactions
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-2">
+        <ScrollArea className="h-[300px] pr-0">
+          {(transactions.length===0 ? sampleTransactions : transactions).map((transaction :any) => (
+            <InvoiceItem
+              key={transaction.id}
+              transaction={transaction}
+              onView={onViewInvoice}
+            />
+          ))}
+        </ScrollArea>
+      </CardContent>
+      <CardFooter>
+        <Button variant="outline" className="w-full bg-blue-500 text-white dark:bg-blue-600">
+          <ArrowRight className="mr-2 h-4 w-4" />
+          View All Transactions
+        </Button>
+      </CardFooter>
+    </Card>
+  
+    <Card className="col-span-full">
         <CardHeader>
           <CardTitle>Overview</CardTitle>
         </CardHeader>
@@ -656,37 +596,7 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
             </AreaChart>
           </ResponsiveContainer>
         </CardContent>
-      </Card>
-      <Card className="col-span-full md:col-span-2">
-      <CardHeader>
-        <CardTitle className="flex items-center justify-between">
-          <span>Recent Transactions</span>
-          <DollarSign className="h-5 w-5 text-muted-foreground" />
-        </CardTitle>
-        <CardDescription>
-          You have {transactions.length===0 ? sampleTransactions.length : transactions.length} total transactions
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="p-2">
-        <ScrollArea className="h-[300px] pr-0">
-          {(transactions.length===0 ? sampleTransactions : transactions).map((transaction :any) => (
-            <InvoiceItem
-              key={transaction.id}
-              transaction={transaction}
-              onView={onViewInvoice}
-            />
-          ))}
-        </ScrollArea>
-      </CardContent>
-      <CardFooter>
-        <Button variant="outline" className="w-full bg-blue-500 text-white dark:bg-blue-600">
-          <ArrowRight className="mr-2 h-4 w-4" />
-          View All Transactions
-        </Button>
-      </CardFooter>
-    </Card>
-  
-      
+      </Card> 
       
       <Card className="col-span-full md:col-span-2">
         <CardHeader>
@@ -2621,10 +2531,6 @@ const GSTVerification =() => {
 }
 
 
-
-
-
-
 export default function EnhancedFinancialApp() {
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -2651,12 +2557,7 @@ export default function EnhancedFinancialApp() {
     };
   }, { cgst: 0, sgst: 0 });
 
-  interface SidebarProps {
-    sidebarOpen: boolean
-    setSidebarOpen: (open: boolean) => void
-    activeItem: string
-    handleNavigation: (item: string) => void
-  }
+
   
   const sidebarItems = [
     { title: "Dashboard", icon: Home, color: "text-blue-500 dark:text-blue-400" },
