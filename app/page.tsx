@@ -2534,7 +2534,7 @@ export default function EnhancedFinancialApp() {
       case "Compare Invoices":
         return <CompareInvoicesScreen transactions={transactions} />;
       case "GST Returns":
-        return <GSTFilingProcess />;
+        return <GSTFilingProcess darkMode={darkMode} />;
       case "ITC Management":
         return <ITCManagement />;
       case "GST Verification":
