@@ -60,6 +60,7 @@ import {
   Briefcase,
   Hash,
   AlertCircle,
+  CalendarRange,
   ChevronRight
 } from "lucide-react";
 import { CgMenuLeftAlt } from "react-icons/cg";
@@ -81,7 +82,16 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from "@/components/ui/select"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+
 import {
   Dialog,
   DialogContent,
@@ -133,13 +143,11 @@ import {
 
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
+
 import { GSTResources } from "@/components/gst-resources";
 import { BillingScreenProps, DashboardCardProps, GstReturnsType, InvoiceCreatedItemProps, InvoiceItemProps, InvoiceItems, ITCEntry, ITCEntryDialogProps, MicroserviceIconProps, SidebarItemProps, Transaction, TransactionForCompare, TransactionListProps } from "@/types";
+import GSTReturnFilingAssistant from "@/components/gst-filing-return";
+import GSTFilingProcess from "@/components/gst-filing-return";
 
 
 
@@ -463,24 +471,65 @@ const DashboardContent = ({ transactions, onViewInvoice }: any) => {
 
   const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
 
+  const currentYear = new Date().getFullYear()
+const years = Array.from({ length: 5 }, (_, i) => currentYear - i)
+  const [selectedYear, setSelectedYear] = useState(currentYear.toString())
+
+  const handleExport = (type: string) => {
+    // Implement export logic here
+    toast({
+      title: "Export Initiated",
+      description: `Exporting ${type} data for the year ${selectedYear}`,
+    })
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-        <div className="flex justify-between items-center w-full sm:justify-normal sm:w-[50%] sm:flex-row gap-4">
-          <Button className="flex items-center gap-2 bg-blue-500 text-white">
-            <Download className="w-4 h-4" />
-            Export Data
-          </Button>
-          <Button variant="outline" className="flex items-center gap-2">
-            <Filter className="w-4 h-4" />
-            Filter
-          </Button>
-        </div>
-        <div className="flex items-center gap-2 bg-yellow-50 text-yellow-700 px-4 py-2 rounded-lg w-full sm:w-auto">
-          <AlertCircle className="w-4 h-4" />
-          <span className="text-sm">Next Filing Due: 20th Oct</span>
-        </div>
+      <div className="flex justify-between items-center w-full sm:justify-normal sm:w-auto sm:flex-row gap-4">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button className="flex items-center gap-2 bg-blue-500 text-white dark:hover:bg-blue-400">
+              <Download className="w-4 h-4" />
+              Export Data
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            <DropdownMenuLabel>Choose export type</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleExport("GSTR-1")}>
+              GSTR-1 Data
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport("GSTR-3B")}>
+              GSTR-3B Data
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport("Invoice")}>
+              Invoice Data
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport("Financial Summary")}>
+              Financial Summary
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+        <Select value={selectedYear} onValueChange={setSelectedYear}>
+          <SelectTrigger className="w-[180px]">
+            <CalendarRange className="w-4 h-4 mr-2" />
+            <SelectValue placeholder="Select Year" />
+          </SelectTrigger>
+          <SelectContent>
+            {years.map((year) => (
+              <SelectItem key={year} value={year.toString()}>
+                FY {year - 1}-{year.toString().slice(-2)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
+      <div className="flex items-center gap-2 bg-yellow-50 text-yellow-700 px-4 py-2 rounded-lg w-full sm:w-auto">
+        <AlertCircle className="w-4 h-4" />
+        <span className="text-sm">Next Filing Due: 20th Oct</span>
+      </div>
+    </div>
       <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-6">
         <DashboardCard
           title="Monthly Sales"
@@ -1782,163 +1831,7 @@ const CompareInvoicesScreen = ({ transactions }: TransactionForCompare) => {
   );
 };
 
-const GSTReturnFilingAssistant = () => {
-  const [selectedReturn, setSelectedReturn] = useState("GSTR-1");
-  const [step, setStep] = useState(1);
-  const [formData, setFormData] = useState<GstReturnsType>({
-    totalTaxableValue: "",
-    totalCGST: "",
-    totalSGST: "",
-    totalIGST: "",
-    b2bInvoices: [],
-    b2cInvoices: [],
-  });
-  const [reviewData, setReviewData] = useState<GstReturnsType | null>(null);
 
-  const handleInputChange = (e: any) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
-
-  const handleNext = () => {
-    if (step === 2) {
-      setReviewData(formData);
-    }
-    setStep(step + 1);
-  };
-
-  const handlePrevious = () => setStep(step - 1);
-
-  const handleSubmit = () => {
-    // Here you would typically send the data to your backend or GST portal
-    console.log("Submitting GSTR-1 data:", formData);
-    // Reset the form and show a success message
-    setFormData({
-      totalTaxableValue: "",
-      totalCGST: "",
-      totalSGST: "",
-      totalIGST: "",
-      b2bInvoices: [],
-      b2cInvoices: [],
-    });
-    setStep(1);
-    setReviewData(null);
-    alert("GSTR-1 submitted successfully!");
-  };
-
-  return (
-    <Card className="w-full max-w-4xl mx-auto">
-      <CardHeader>
-        <CardTitle>GST Return Filing Assistant</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={selectedReturn} onValueChange={setSelectedReturn}>
-          <TabsList>
-            <TabsTrigger value="GSTR-1">GSTR-1</TabsTrigger>
-            <TabsTrigger value="GSTR-3B">GSTR-3B</TabsTrigger>
-          </TabsList>
-          <TabsContent value="GSTR-1">
-            {step === 1 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Step 1: Prepare Data</h3>
-                <p>
-                  Ensure all your sales invoices for the period are ready.
-                  You'll need to enter the following information:
-                </p>
-                <ul className="list-disc list-inside space-y-2">
-                  <li>Total taxable value of supplies</li>
-                  <li>Total CGST, SGST, and IGST collected</li>
-                  <li>Details of B2B and B2C invoices</li>
-                </ul>
-                <Button onClick={handleNext}>Next</Button>
-              </div>
-            )}
-            {step === 2 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">Step 2: Enter Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="totalTaxableValue">
-                      Total Taxable Value
-                    </Label>
-                    <Input
-                      id="totalTaxableValue"
-                      name="totalTaxableValue"
-                      value={formData.totalTaxableValue}
-                      onChange={handleInputChange}
-                      placeholder="Enter total taxable value"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="totalCGST">Total CGST</Label>
-                    <Input
-                      id="totalCGST"
-                      name="totalCGST"
-                      value={formData.totalCGST}
-                      onChange={handleInputChange}
-                      placeholder="Enter total CGST"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="totalSGST">Total SGST</Label>
-                    <Input
-                      id="totalSGST"
-                      name="totalSGST"
-                      value={formData.totalSGST}
-                      onChange={handleInputChange}
-                      placeholder="Enter total SGST"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="totalIGST">Total IGST</Label>
-                    <Input
-                      id="totalIGST"
-                      name="totalIGST"
-                      value={formData.totalIGST}
-                      onChange={handleInputChange}
-                      placeholder="Enter total IGST"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-between">
-                  <Button onClick={handlePrevious}>Previous</Button>
-                  <Button onClick={handleNext}>Next</Button>
-                </div>
-              </div>
-            )}
-            {step === 3 && (
-              <div className="space-y-4">
-                <h3 className="text-lg font-semibold">
-                  Step 3: Review and Submit
-                </h3>
-                <div className="border p-4 rounded-md">
-                  <h4 className="font-semibold mb-2">GSTR-1 Summary</h4>
-                  <p>Total Taxable Value: ₹{formData.totalTaxableValue}</p>
-                  <p>Total CGST: ₹{formData.totalCGST}</p>
-                  <p>Total SGST: ₹{formData.totalSGST}</p>
-                  <p>Total IGST: ₹{formData.totalIGST}</p>
-                </div>
-                <div className="flex justify-between">
-                  <Button onClick={handlePrevious}>Previous</Button>
-                  <Button onClick={handleSubmit}>Submit GSTR-1</Button>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-          <TabsContent value="GSTR-3B">
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">GSTR-3B Filing</h3>
-              <p>
-                GSTR-3B filing process will be implemented here, similar to
-                GSTR-1.
-              </p>
-            </div>
-          </TabsContent>
-        </Tabs>
-      </CardContent>
-    </Card>
-  );
-};
 
 const ITCManagement = () => {
   const [itcEntries, setItcEntries] = useState<ITCEntry[]>([
@@ -2641,7 +2534,7 @@ export default function EnhancedFinancialApp() {
       case "Compare Invoices":
         return <CompareInvoicesScreen transactions={transactions} />;
       case "GST Returns":
-        return <GSTReturnFilingAssistant />;
+        return <GSTFilingProcess />;
       case "ITC Management":
         return <ITCManagement />;
       case "GST Verification":
